@@ -47,7 +47,7 @@ export default function Home({ nextEvent }) {
         justifyContent: 'flex-end', padding: '60px 40px 80px', overflow: 'hidden',
       }}>
         <div ref={videoRef} style={{ position: 'absolute', inset: 0, zIndex: 0, transition: 'opacity 0.05s linear' }}>
-          <video autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.35)' }}>
+          <video autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.55)' }}>
             <source src="/images/hero-video.mp4" type="video/mp4" />
           </video>
         </div>
