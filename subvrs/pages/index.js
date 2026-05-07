@@ -1,10 +1,18 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
-import events from '../data/events.json';
+import { supabase } from '../lib/supabase';
 
-export default function Home() {
-  const nextEvent = events.find(e => e.status === 'upcoming') || events[0];
+export async function getServerSideProps() {
+  const { data: events } = await supabase
+    .from('events')
+    .select('*')
+    .order('date', { ascending: false });
+  const nextEvent = (events || []).find(e => e.status === 'upcoming') || (events || [])[0] || null;
+  return { props: { nextEvent } };
+}
+
+export default function Home({ nextEvent }) {
   const heroRef = useRef(null);
   const textRef = useRef(null);
   const videoRef = useRef(null);
@@ -15,17 +23,14 @@ export default function Home() {
       const hero = heroRef.current;
       if (!hero) return;
       const heroH = hero.offsetHeight;
-
       if (videoRef.current) {
         const opacity = Math.max(0, 1 - (scrollY / (heroH * 0.6)));
         videoRef.current.style.opacity = opacity;
       }
-
       if (textRef.current) {
         textRef.current.style.transform = `translateY(${scrollY * 0.35}px)`;
       }
     };
-
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -46,31 +51,19 @@ export default function Home() {
             <source src="/images/hero-video.mp4" type="video/mp4" />
           </video>
         </div>
-
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 1,
-          background: 'linear-gradient(to bottom, rgba(10,9,8,0.1) 0%, rgba(10,9,8,0.5) 60%, rgba(10,9,8,1) 100%)',
-        }} />
-
+        <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'linear-gradient(to bottom, rgba(10,9,8,0.1) 0%, rgba(10,9,8,0.5) 60%, rgba(10,9,8,1) 100%)' }} />
         <div style={{ position: 'absolute', top: '80px', right: '40px', zIndex: 2, width: '1px', height: '120px', background: 'var(--accent)', opacity: 0.6 }} />
 
-        <div ref={textRef} style={{ position: 'relative', zIndex: 2, maxWidth: '1100px', willChange: 'transform' }}>
+        <div ref={textRef} style={{ position: 'relative', zIndex: 2, willChange: 'transform' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: '24px' }}>
             @SUBVRS.011 — Torino, Italy
           </div>
-
-          <h1 style={{
-            fontSize: 'clamp(80px, 16vw, 200px)', fontWeight: 900,
-            lineHeight: 0.9, letterSpacing: '-0.02em',
-            marginBottom: '32px', whiteSpace: 'nowrap',
-          }}>
+          <h1 style={{ fontSize: 'clamp(60px, 11vw, 160px)', fontWeight: 900, lineHeight: 0.9, letterSpacing: '-0.02em', marginBottom: '32px', whiteSpace: 'nowrap' }}>
             SUBVRS
           </h1>
-
           <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', color: 'var(--text2)', maxWidth: '480px', lineHeight: 1.6, marginBottom: '40px', fontWeight: 400 }}>
             Selezione musicale. Vibrazioni. House, disco e tutto quello che ti fa ballare.
           </p>
-
           <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
             <Link href="/events" className="btn-primary">Prossimi eventi</Link>
             <Link href="/media" className="btn-outline">Gallery</Link>
@@ -82,29 +75,52 @@ export default function Home() {
 
       {nextEvent && (
         <section style={{ padding: '80px 40px', borderTop: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '48px', flexWrap: 'wrap', gap: '16px' }}>
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '8px' }}>
-                {nextEvent.status === 'past' ? 'Ultimo evento' : 'Prossimo evento'}
-              </div>
-              <h2 style={{ fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 900, letterSpacing: '-0.02em' }}>{nextEvent.name}</h2>
-            </div>
-            <Link href={`/events/${nextEvent.id}`} className="btn-outline">Vedi dettagli →</Link>
+          <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '24px' }}>
+            {nextEvent.status === 'past' ? 'Ultimo evento' : 'Prossimo evento'}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)' }}>
-            {[
-              ['Data', new Date(nextEvent.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })],
-              ['Orario', `${nextEvent.time} — ${nextEvent.endTime}`],
-              ['Venue', nextEvent.venue],
-              ['Ingresso', nextEvent.entry],
-            ].map(([label, val]) => (
-              <div key={label} style={{ background: 'var(--bg2)', padding: '28px 24px' }}>
-                <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '8px' }}>{label}</div>
-                <div style={{ fontSize: '15px', fontWeight: 600 }}>{val}</div>
+          <Link href={`/events/${nextEvent.id}`}>
+            <div style={{
+              display: 'grid', gridTemplateColumns: nextEvent.flyer ? '1fr 1fr' : '1fr',
+              gap: '0', border: '1px solid var(--border)', borderRadius: '8px',
+              overflow: 'hidden', cursor: 'pointer', transition: 'border-color 0.2s',
+            }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+            >
+              <div style={{ padding: '40px', background: 'var(--bg2)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '32px' }}>
+                <div>
+                  <h2 style={{ fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: '16px' }}>{nextEvent.name}</h2>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+                    {(nextEvent.genre || []).map(g => <span key={g} className="tag violet">{g}</span>)}
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: 'var(--border)' }}>
+                  {[
+                    ['Data', new Date(nextEvent.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })],
+                    ['Orario', `${nextEvent.time} — ${nextEvent.end_time}`],
+                    ['Venue', nextEvent.venue],
+                    ['Ingresso', nextEvent.entry],
+                  ].map(([label, val]) => (
+                    <div key={label} style={{ background: 'var(--bg2)', padding: '16px' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '4px' }}>{label}</div>
+                      <div style={{ fontSize: '14px', fontWeight: 600 }}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent)' }}>Vedi tutti i dettagli →</div>
               </div>
-            ))}
-          </div>
+
+              {nextEvent.flyer && (
+                <div style={{ position: 'relative', minHeight: '300px', overflow: 'hidden' }}>
+                  <img src={nextEvent.flyer} alt={nextEvent.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', transition: 'transform 0.4s' }}
+                    onMouseEnter={e => e.target.style.transform = 'scale(1.03)'}
+                    onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                  />
+                </div>
+              )}
+            </div>
+          </Link>
         </section>
       )}
 
