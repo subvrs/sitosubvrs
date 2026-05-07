@@ -51,7 +51,7 @@ export default function Home({ nextEvent }) {
             <source src="/images/hero-video.mp4" type="video/mp4" />
           </video>
         </div>
-        <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'linear-gradient(to bottom, rgba(10,9,8,0.1) 0%, rgba(10,9,8,0.5) 60%, rgba(10,9,8,1) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'linear-gradient(to bottom, rgba(10,9,8,0.0) 0%, rgba(10,9,8,0.2) 40%, rgba(10,9,8,0.7) 75%)' }} />
         <div style={{ position: 'absolute', top: '80px', right: '40px', zIndex: 2, width: '1px', height: '120px', background: 'var(--accent)', opacity: 0.6 }} />
 
         <div ref={textRef} style={{ position: 'relative', zIndex: 2, willChange: 'transform' }}>
