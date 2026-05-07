@@ -1,0 +1,28 @@
+[
+  {
+    "id": "discopo-may-2026",
+    "name": "DISCOPO",
+    "date": "2026-05-06",
+    "time": "18:00",
+    "endTime": "till late",
+    "venue": "Capodoglio Murazzi del Po",
+    "city": "Torino",
+    "address": "Murazzi del Po, Torino",
+    "genre": ["Disco", "Disco House", "House"],
+    "description": "Una serata dove la selezione musicale è tutto. Disco, house e vibrazioni che ti fanno ballare dal tramonto fino a tardi. Ingresso libero con accredito obbligatorio.",
+    "happyHour": "Happy Hour fino alle 22:00",
+    "entry": "Ingresso libero con accredito obbligatorio",
+    "dressCode": "Smart casual — niente sportivo",
+    "ageLimit": "18+",
+    "ticketLink": "#past-event",
+    "status": "past",
+    "flyer": "/images/discopo-flyer.jpg",
+    "lineup": [
+      { "name": "Macovelli", "role": "DJ Set", "time": "18:00" },
+      { "name": "Matt", "role": "DJ Set", "time": "20:00" },
+      { "name": "Gabriele Goduti", "role": "DJ Set", "time": "22:00" },
+      { "name": "Gabriele B2B Matt", "role": "B2B DJ Set", "time": "00:00" }
+    ],
+    "photos": []
+  }
+]
