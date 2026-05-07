@@ -47,7 +47,7 @@ export default function EventPage({ event }) {
         <div ref={overlayRef} style={{ position: 'absolute', inset: 0, zIndex: 0, transition: 'opacity 0.05s linear' }}>
           {event.flyer && (
             <img src={event.flyer} alt={event.name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', filter: 'brightness(0.3)' }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', filter: 'brightness(0.55)' }}
             />
           )}
         </div>
