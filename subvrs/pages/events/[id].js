@@ -51,7 +51,7 @@ export default function EventPage({ event }) {
             />
           )}
         </div>
-        <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'linear-gradient(to bottom, rgba(10,9,8,0.1) 0%, rgba(10,9,8,0.6) 60%, rgba(10,9,8,1) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'linear-gradient(to bottom, rgba(10,9,8,0.0) 0%, rgba(10,9,8,0.2) 40%, rgba(10,9,8,0.7) 75%)' }} />
         <div style={{ position: 'relative', zIndex: 2 }}>
           <Link href="/events" style={{ fontSize: '12px', color: 'var(--text2)', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: '24px' }}>
             ← Tutti gli eventi
