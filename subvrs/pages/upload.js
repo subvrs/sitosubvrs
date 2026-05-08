@@ -1,47 +1,63 @@
 import Head from 'next/head';
-import { useState } from 'react';
-import events from '../data/events.json';
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 const UPLOAD_PASSWORD = 'subvrs2026';
+const CLOUD_NAME = 'dvjxx6syx';
+const UPLOAD_PRESET = 'subvrs_events';
 
 export default function Upload() {
   const [auth, setAuth] = useState(false);
   const [pw, setPw] = useState('');
   const [pwError, setPwError] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState(events[0]?.id || '');
+  const [events, setEvents] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState('');
   const [files, setFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
   const [uploading, setUploading] = useState(false);
-  const [uploaded, setUploaded] = useState([]);
+  const [progress, setProgress] = useState(0);
   const [done, setDone] = useState(false);
+  const [uploadedCount, setUploadedCount] = useState(0);
   const [drag, setDrag] = useState(false);
+
+  useEffect(() => {
+    if (auth) loadEvents();
+  }, [auth]);
+
+  const loadEvents = async () => {
+    const { data } = await supabase.from('events').select('id, name, date').order('date', { ascending: false });
+    setEvents(data || []);
+    if (data && data.length > 0) setSelectedEvent(data[0].id);
+  };
 
   const handleLogin = (e) => {
     e.preventDefault();
     if (pw === UPLOAD_PASSWORD) { setAuth(true); setPwError(false); }
-    else { setPwError(true); }
+    else setPwError(true);
   };
 
   const handleFiles = (fileList) => {
     const arr = Array.from(fileList).filter(f => f.type.startsWith('image/'));
     setFiles(arr);
-    const urls = arr.map(f => URL.createObjectURL(f));
-    setPreviews(urls);
+    setPreviews(arr.map(f => URL.createObjectURL(f)));
   };
 
   const handleUpload = async () => {
     if (!files.length || !selectedEvent) return;
     setUploading(true);
+    setProgress(0);
 
     const uploadedUrls = [];
-    for (const file of files) {
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('upload_preset', 'subvrs_events');
+      formData.append('upload_preset', UPLOAD_PRESET);
       formData.append('folder', `subvrs/${selectedEvent}`);
 
       try {
-        const res = await fetch(`https://api.cloudinary.com/v1_1/dvjxx6syx/image/upload`, {
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
           method: 'POST',
           body: formData,
         });
@@ -50,9 +66,27 @@ export default function Upload() {
       } catch (err) {
         console.error('Upload error:', err);
       }
+
+      setProgress(Math.round(((i + 1) / files.length) * 100));
     }
 
-    setUploaded(uploadedUrls);
+    // Get existing photos for this event
+    const { data: eventData } = await supabase
+      .from('events')
+      .select('photos')
+      .eq('id', selectedEvent)
+      .single();
+
+    const existingPhotos = eventData?.photos || [];
+    const allPhotos = [...existingPhotos, ...uploadedUrls];
+
+    // Save all photos back to Supabase
+    await supabase
+      .from('events')
+      .update({ photos: allPhotos })
+      .eq('id', selectedEvent);
+
+    setUploadedCount(uploadedUrls.length);
     setUploading(false);
     setDone(true);
   };
@@ -63,24 +97,12 @@ export default function Upload() {
         <Head><title>Upload Staff — SUBVRS</title></Head>
         <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
           <div style={{ width: '100%', maxWidth: '400px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '12px' }}>
-              Area riservata
-            </div>
+            <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '12px' }}>Area riservata</div>
             <h1 style={{ fontSize: '32px', fontWeight: 900, marginBottom: '32px' }}>Staff Upload</h1>
             <form onSubmit={handleLogin}>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text2)', display: 'block', marginBottom: '8px' }}>
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={pw}
-                  onChange={e => setPw(e.target.value)}
-                  placeholder="Password staff"
-                  style={{ borderColor: pwError ? 'var(--accent)' : undefined }}
-                />
-                {pwError && <div style={{ fontSize: '12px', color: 'var(--accent)', marginTop: '6px' }}>Password errata.</div>}
-              </div>
+              <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Password staff"
+                style={{ marginBottom: '12px', borderColor: pwError ? 'var(--accent)' : undefined }} />
+              {pwError && <div style={{ fontSize: '12px', color: 'var(--accent)', marginBottom: '12px' }}>Password errata.</div>}
               <button type="submit" className="btn-primary" style={{ width: '100%' }}>Accedi</button>
             </form>
           </div>
@@ -93,12 +115,10 @@ export default function Upload() {
     <>
       <Head><title>Upload Foto — SUBVRS Staff</title></Head>
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '60px 40px' }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: '12px' }}>
-          Staff area
-        </div>
+        <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: '12px' }}>Staff area</div>
         <h1 style={{ fontSize: '40px', fontWeight: 900, marginBottom: '8px' }}>Upload foto</h1>
         <p style={{ fontSize: '14px', color: 'var(--text2)', marginBottom: '48px' }}>
-          Carica le foto dell'evento. Appariranno automaticamente nella gallery pubblica.
+          Le foto appaiono automaticamente nella gallery pubblica dopo il caricamento.
         </p>
 
         {done ? (
@@ -106,27 +126,27 @@ export default function Upload() {
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>✓</div>
             <div style={{ fontSize: '22px', fontWeight: 800, marginBottom: '8px' }}>Upload completato!</div>
             <div style={{ fontSize: '14px', color: 'var(--text2)', marginBottom: '32px' }}>
-              {uploaded.length} foto caricate con successo.
+              {uploadedCount} foto caricate e pubblicate nella gallery.
             </div>
-            <button onClick={() => { setFiles([]); setPreviews([]); setDone(false); setUploaded([]); }} className="btn-outline">
+            <button onClick={() => { setFiles([]); setPreviews([]); setDone(false); setUploadedCount(0); }} className="btn-outline">
               Carica altre foto
             </button>
           </div>
         ) : (
           <>
-            {/* Select event */}
             <div style={{ marginBottom: '28px' }}>
               <label style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text2)', display: 'block', marginBottom: '10px' }}>
                 Seleziona evento
               </label>
               <select value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)}>
                 {events.map(ev => (
-                  <option key={ev.id} value={ev.id}>{ev.name} — {new Date(ev.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })}</option>
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name} — {new Date(ev.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })}
+                  </option>
                 ))}
               </select>
             </div>
 
-            {/* Drag & drop zone */}
             <div
               onDragOver={e => { e.preventDefault(); setDrag(true); }}
               onDragLeave={() => setDrag(false)}
@@ -135,7 +155,7 @@ export default function Upload() {
               style={{
                 border: `2px dashed ${drag ? 'var(--accent)' : 'var(--border2)'}`,
                 borderRadius: '8px', padding: '60px 40px', textAlign: 'center',
-                cursor: 'pointer', transition: 'border-color 0.2s, background 0.2s',
+                cursor: 'pointer', transition: 'all 0.2s',
                 background: drag ? 'rgba(232,71,26,0.04)' : 'var(--bg2)',
                 marginBottom: '24px',
               }}
@@ -147,7 +167,6 @@ export default function Upload() {
                 onChange={e => handleFiles(e.target.files)} />
             </div>
 
-            {/* Preview */}
             {previews.length > 0 && (
               <div style={{ marginBottom: '28px' }}>
                 <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '12px' }}>
@@ -163,35 +182,26 @@ export default function Upload() {
               </div>
             )}
 
-            {files.length > 0 && (
-              <button
-                className="btn-primary"
-                onClick={handleUpload}
-                disabled={uploading}
-                style={{ width: '100%', opacity: uploading ? 0.7 : 1, position: 'relative' }}
-              >
-                {uploading ? `Caricamento in corso...` : `Carica ${files.length} foto`}
-              </button>
+            {uploading && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text2)', marginBottom: '8px' }}>
+                  <span>Caricamento in corso...</span>
+                  <span>{progress}%</span>
+                </div>
+                <div style={{ background: 'var(--bg3)', borderRadius: '4px', height: '4px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', background: 'var(--accent)', width: `${progress}%`, transition: 'width 0.3s' }} />
+                </div>
+              </div>
             )}
 
-            {uploading && (
-              <div style={{ marginTop: '16px', fontSize: '13px', color: 'var(--text2)', textAlign: 'center' }}>
-                Attendi, non chiudere la pagina...
-              </div>
+            {files.length > 0 && (
+              <button className="btn-primary" onClick={handleUpload} disabled={uploading}
+                style={{ width: '100%', opacity: uploading ? 0.7 : 1 }}>
+                {uploading ? `Caricamento... ${progress}%` : `Carica ${files.length} foto`}
+              </button>
             )}
           </>
         )}
-
-        {/* Instructions */}
-        <div style={{ marginTop: '48px', padding: '24px', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: '8px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '12px' }}>Note</div>
-          <ul style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.8, paddingLeft: '16px' }}>
-            <li>Formati supportati: JPG, PNG, WEBP</li>
-            <li>Seleziona l'evento corretto prima di caricare</li>
-            <li>Le foto appaiono in galleria entro pochi secondi</li>
-            <li>Per rimuovere foto contatta il team</li>
-          </ul>
-        </div>
       </div>
     </>
   );
