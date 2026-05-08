@@ -16,20 +16,18 @@ export async function getServerSideProps({ params }) {
 export default function EventPage({ event }) {
   const [selectedArtist, setSelectedArtist] = useState(null);
   const heroRef = useRef(null);
-  const overlayRef = useRef(null);
+  const imgRef = useRef(null);
   const isPast = event.status === 'past';
   const date = new Date(event.date);
   const lineup = event.lineup || [];
 
   useEffect(() => {
     const handleScroll = () => {
-      if (!heroRef.current) return;
+      if (!heroRef.current || !imgRef.current) return;
       const scrollY = window.scrollY;
       const heroH = heroRef.current.offsetHeight;
-      if (overlayRef.current) {
-        const opacity = Math.max(0, 1 - (scrollY / (heroH * 0.7)));
-        overlayRef.current.style.opacity = opacity;
-      }
+      const opacity = Math.max(0, 1 - (scrollY / (heroH * 0.8)));
+      imgRef.current.style.opacity = opacity;
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
@@ -42,32 +40,47 @@ export default function EventPage({ event }) {
         <meta name="description" content={event.description} />
       </Head>
 
-      {/* HERO with horizontal flyer + parallax fade */}
-      <section ref={heroRef} style={{ position: 'relative', minHeight: '60vh', display: 'flex', alignItems: 'flex-end', padding: '40px', overflow: 'hidden' }}>
-        <div ref={overlayRef} style={{ position: 'absolute', inset: 0, zIndex: 0, transition: 'opacity 0.05s linear' }}>
-          {event.flyer && (
+      {/* HERO — full width horizontal photo that fades */}
+      <section ref={heroRef} style={{
+        position: 'relative',
+        height: '65vh', marginBottom: '-80px',
+        minHeight: '400px',
+        overflow: 'hidden',
+      }}>
+        {/* Photo */}
+        <div ref={imgRef} style={{ position: 'absolute', inset: 0, zIndex: 0, transition: 'opacity 0.05s linear' }}>
+          {event.flyer ? (
             <img src={event.flyer} alt={event.name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', filter: 'brightness(0.55)' }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%', filter: 'brightness(0.55)' }}
             />
+          ) : (
+            <div style={{ width: '100%', height: '100%', background: 'var(--bg3)' }} />
           )}
         </div>
-        <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'linear-gradient(to bottom, rgba(10,9,8,0.0) 0%, rgba(10,9,8,0.2) 40%, rgba(10,9,8,0.7) 75%)' }} />
-        <div style={{ position: 'relative', zIndex: 2 }}>
-          <Link href="/events" style={{ fontSize: '12px', color: 'var(--text2)', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: '24px' }}>
+
+        {/* Gradient — smooth fade to black at bottom */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 1,
+          background: 'linear-gradient(to bottom, rgba(10,9,8,0.0) 0%, rgba(10,9,8,0.0) 55%, rgba(10,9,8,0.5) 85%, rgba(10,9,8,1) 100%)',
+        }} />
+
+        {/* Content at bottom */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 2, padding: '40px' }}>
+          <Link href="/events" style={{ fontSize: '12px', color: 'var(--text2)', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'inline-block', marginBottom: '20px' }}>
             ← Tutti gli eventi
           </Link>
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
             {(event.genre || []).map(g => <span key={g} className="tag violet">{g}</span>)}
             {isPast && <span className="tag past">Evento passato</span>}
           </div>
-          <h1 style={{ fontSize: 'clamp(48px, 10vw, 100px)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 0.9 }}>
+          <h1 style={{ fontSize: 'clamp(40px, 8vw, 90px)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 0.9 }}>
             {event.name}
           </h1>
         </div>
       </section>
 
-      {/* MAIN */}
-      <div style={{ padding: '0 40px', display: 'grid', gridTemplateColumns: '1fr 340px', gap: '60px', maxWidth: '1200px', margin: '0 auto' }} className="event-grid">
+      {/* MAIN CONTENT */}
+      <div style={{ position: 'relative', zIndex: 2, padding: '48px 40px', display: 'grid', gridTemplateColumns: '1fr 320px', gap: '60px', maxWidth: '1200px', margin: '0 auto' }} className="event-grid">
 
         <div>
           {/* Description */}
@@ -81,13 +94,11 @@ export default function EventPage({ event }) {
               <SectionTitle>Lineup</SectionTitle>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 {lineup.map((artist, i) => (
-                  <div key={i}
-                    onClick={() => setSelectedArtist(artist)}
-                    style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '20px 24px', background: 'var(--bg2)', border: '1px solid var(--border)',
-                      borderRadius: '4px', cursor: 'pointer', transition: 'all 0.2s',
-                    }}
+                  <div key={i} onClick={() => setSelectedArtist(artist)} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '20px 24px', background: 'var(--bg2)', border: '1px solid var(--border)',
+                    borderRadius: '4px', cursor: 'pointer', transition: 'all 0.2s',
+                  }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.background = 'var(--bg3)'; }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg2)'; }}
                   >
@@ -119,12 +130,12 @@ export default function EventPage({ event }) {
                 ['Dress code', event.dress_code],
                 ['Età', event.age_limit],
                 ...(event.happy_hour ? [['Happy Hour', event.happy_hour]] : []),
-              ].map(([label, val]) => val ? (
+              ].filter(([, val]) => val).map(([label, val]) => (
                 <div key={label} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', padding: '20px' }}>
                   <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '6px' }}>{label}</div>
                   <div style={{ fontSize: '14px', fontWeight: 600 }}>{val}</div>
                 </div>
-              ) : null)}
+              ))}
             </div>
           </div>
 
@@ -132,11 +143,11 @@ export default function EventPage({ event }) {
           {(event.photos || []).length > 0 && (
             <div>
               <SectionTitle>Gallery</SectionTitle>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '4px' }}>
+              <div style={{ columns: '3 150px', gap: '4px' }}>
                 {event.photos.map((photo, i) => (
-                  <div key={i} style={{ aspectRatio: '1', overflow: 'hidden', borderRadius: '4px' }}>
-                    <img src={photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s' }}
-                      onMouseEnter={e => e.target.style.transform = 'scale(1.05)'}
+                  <div key={i} style={{ breakInside: 'avoid', marginBottom: '4px', overflow: 'hidden', borderRadius: '2px' }}>
+                    <img src={photo} alt="" style={{ width: '100%', display: 'block', transition: 'transform 0.3s' }}
+                      onMouseEnter={e => e.target.style.transform = 'scale(1.03)'}
                       onMouseLeave={e => e.target.style.transform = 'scale(1)'}
                     />
                   </div>
@@ -195,34 +206,24 @@ export default function EventPage({ event }) {
         }}>
           <div onClick={e => e.stopPropagation()} style={{
             background: 'var(--bg2)', border: '1px solid var(--border2)',
-            borderRadius: '12px', padding: '40px', maxWidth: '480px', width: '100%',
-            position: 'relative',
+            borderRadius: '12px', padding: '40px', maxWidth: '480px', width: '100%', position: 'relative',
           }}>
-            <button onClick={() => setSelectedArtist(null)} style={{
-              position: 'absolute', top: '16px', right: '16px',
-              background: 'none', border: 'none', color: 'var(--text2)', fontSize: '20px', cursor: 'pointer',
-            }}>✕</button>
+            <button onClick={() => setSelectedArtist(null)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: 'var(--text2)', fontSize: '20px', cursor: 'pointer' }}>✕</button>
 
-            {selectedArtist.photo && (
-              <div style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', marginBottom: '20px', border: '2px solid var(--border2)' }}>
-                <img src={selectedArtist.photo} alt={selectedArtist.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              </div>
-            )}
-
-            {!selectedArtist.photo && (
-              <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--bg3)', border: '2px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', fontSize: '28px', fontWeight: 900, color: 'var(--accent)' }}>
-                {selectedArtist.name.charAt(0)}
-              </div>
-            )}
+            <div style={{ width: '72px', height: '72px', borderRadius: '50%', overflow: 'hidden', marginBottom: '20px', border: '2px solid var(--border2)', background: 'var(--bg3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {selectedArtist.photo
+                ? <img src={selectedArtist.photo} alt={selectedArtist.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <span style={{ fontSize: '26px', fontWeight: 900, color: 'var(--accent)' }}>{selectedArtist.name.charAt(0)}</span>
+              }
+            </div>
 
             <div style={{ fontSize: '28px', fontWeight: 900, marginBottom: '4px' }}>{selectedArtist.name}</div>
             <div style={{ fontSize: '12px', color: 'var(--violet2)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '20px' }}>{selectedArtist.role}</div>
 
-            {selectedArtist.bio ? (
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: 'var(--text2)' }}>{selectedArtist.bio}</p>
-            ) : (
-              <p style={{ fontSize: '14px', color: 'var(--text2)', fontStyle: 'italic' }}>Nessuna bio disponibile per questo artista.</p>
-            )}
+            {selectedArtist.bio
+              ? <p style={{ fontSize: '15px', lineHeight: 1.7, color: 'var(--text2)' }}>{selectedArtist.bio}</p>
+              : <p style={{ fontSize: '14px', color: 'var(--text2)', fontStyle: 'italic' }}>Nessuna bio disponibile.</p>
+            }
 
             {selectedArtist.time && (
               <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--border)', fontSize: '13px', color: 'var(--text2)' }}>
