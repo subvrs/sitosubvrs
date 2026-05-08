@@ -128,7 +128,7 @@ export default function Home({ nextEvent }) {
         <div style={{ flex: '1 1 300px' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '16px' }}>Chi siamo</div>
           <h2 style={{ fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: '24px' }}>
-            GOD LISTENS<br />HOUSE MUSIC.
+            NO POSE.<br />JUST MUSIC.
           </h2>
         </div>
         <div style={{ flex: '1 1 400px' }}>
