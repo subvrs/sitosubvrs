@@ -51,7 +51,7 @@ export default function Home({ nextEvent }) {
             <source src="/images/hero-video.mp4" type="video/mp4" />
           </video>
         </div>
-        <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'linear-gradient(to bottom, rgba(10,9,8,0.0) 0%, rgba(10,9,8,0.2) 40%, rgba(10,9,8,0.7) 75%)' }} />
+        <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'linear-gradient(to bottom, rgba(10,9,8,0.0) 0%, rgba(10,9,8,0.2) 40%, rgba(10,9,8,0.7) 75%, rgba(10,9,8,1) 100%)' }} />
         <div style={{ position: 'absolute', top: '80px', right: '40px', zIndex: 2, width: '1px', height: '120px', background: 'var(--accent)', opacity: 0.6 }} />
 
         <div ref={textRef} style={{ position: 'relative', zIndex: 2, willChange: 'transform' }}>
@@ -80,18 +80,20 @@ export default function Home({ nextEvent }) {
           </div>
 
           <Link href={`/events/${nextEvent.id}`}>
-            <div style={{
-              display: 'grid', gridTemplateColumns: nextEvent.flyer ? '1fr 1fr' : '1fr',
-              gap: '0', border: '1px solid var(--border)', borderRadius: '8px',
+            <div className="event-banner" style={{
+              display: 'grid',
+              gridTemplateColumns: nextEvent.flyer ? '3fr 2fr' : '1fr',
+              height: '420px',
+              border: '1px solid var(--border)', borderRadius: '8px',
               overflow: 'hidden', cursor: 'pointer', transition: 'border-color 0.2s',
             }}
               onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
               onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
             >
-              <div style={{ padding: '40px', background: 'var(--bg2)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '32px' }}>
+              <div style={{ padding: '36px', background: 'var(--bg2)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden' }}>
                 <div>
-                  <h2 style={{ fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: '16px' }}>{nextEvent.name}</h2>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+                  <h2 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: '12px', lineHeight: 1 }}>{nextEvent.name}</h2>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     {(nextEvent.genre || []).map(g => <span key={g} className="tag violet">{g}</span>)}
                   </div>
                 </div>
@@ -102,9 +104,9 @@ export default function Home({ nextEvent }) {
                     ['Venue', nextEvent.venue],
                     ['Ingresso', nextEvent.entry],
                   ].map(([label, val]) => (
-                    <div key={label} style={{ background: 'var(--bg2)', padding: '16px' }}>
+                    <div key={label} style={{ background: 'var(--bg2)', padding: '14px' }}>
                       <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '4px' }}>{label}</div>
-                      <div style={{ fontSize: '14px', fontWeight: 600 }}>{val}</div>
+                      <div style={{ fontSize: '13px', fontWeight: 600 }}>{val}</div>
                     </div>
                   ))}
                 </div>
@@ -112,8 +114,9 @@ export default function Home({ nextEvent }) {
               </div>
 
               {nextEvent.flyer && (
-                <div style={{ position: 'relative', minHeight: '300px', overflow: 'hidden' }}>
-                  <img src={nextEvent.flyer} alt={nextEvent.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', transition: 'transform 0.4s' }}
+                <div style={{ overflow: 'hidden', height: '100%' }}>
+                  <img src={nextEvent.flyer} alt={nextEvent.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', transition: 'transform 0.4s' }}
                     onMouseEnter={e => e.target.style.transform = 'scale(1.03)'}
                     onMouseLeave={e => e.target.style.transform = 'scale(1)'}
                   />
@@ -121,6 +124,19 @@ export default function Home({ nextEvent }) {
               )}
             </div>
           </Link>
+
+          <style jsx>{`
+            .event-banner {
+              grid-template-columns: ${nextEvent.flyer ? '3fr 2fr' : '1fr'};
+              height: 420px;
+            }
+            @media (max-width: 768px) {
+              .event-banner {
+                grid-template-columns: 1fr !important;
+                height: auto !important;
+              }
+            }
+          `}</style>
         </section>
       )}
 
@@ -128,19 +144,19 @@ export default function Home({ nextEvent }) {
         <div style={{ flex: '1 1 300px' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '16px' }}>Chi siamo</div>
           <h2 style={{ fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: '24px' }}>
-            NO POSE.<br />JUST MUSIC.
+            COME AS<br />YOU ARE.
           </h2>
         </div>
         <div style={{ flex: '1 1 400px' }}>
           <p style={{ fontSize: '16px', lineHeight: 1.8, color: 'var(--text2)', marginBottom: '16px' }}>
-  Siamo un gruppo di amici che vengono da mondi diversi e questo, alla fine, è il motivo per cui funziona.
-</p>
-<p style={{ fontSize: '16px', lineHeight: 1.8, color: 'var(--text2)', marginBottom: '16px' }}>
-  Backgrounds diversi significano gusti diversi, occhi diversi, modi diversi di stare in un posto. Significa che quando organizziamo una serata, sappiamo come fare sentire a casa chiunque entri.
-</p>
-<p style={{ fontSize: '16px', lineHeight: 1.8, color: 'var(--text2)' }}>
-  La nostra selezione musicale è fuori dal comune ma il punto non è fare i difficili. Il punto è farti scoprire qualcosa che non sapevi di amare, in un ambiente dove vieni per stare bene, non per fare scena.
-</p>
+            Siamo un gruppo di amici che vengono da mondi diversi e questo, alla fine, è il motivo per cui funziona.
+          </p>
+          <p style={{ fontSize: '16px', lineHeight: 1.8, color: 'var(--text2)', marginBottom: '16px' }}>
+            Backgrounds diversi significano gusti diversi, occhi diversi, modi diversi di stare in un posto. Significa che quando organizziamo una serata, sappiamo come fare sentire a casa chiunque entri.
+          </p>
+          <p style={{ fontSize: '16px', lineHeight: 1.8, color: 'var(--text2)' }}>
+            La nostra selezione musicale è fuori dal comune ma il punto non è fare i difficili. Il punto è farti scoprire qualcosa che non sapevi di amare, in un ambiente dove vieni per stare bene, non per fare scena.
+          </p>
         </div>
       </section>
     </>
