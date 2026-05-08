@@ -41,7 +41,7 @@ export default function Upload() {
       formData.append('folder', `subvrs/${selectedEvent}`);
 
       try {
-        const res = await fetch(`https://api.cloudinary.com/v1_1/YOUR_CLOUDINARY_CLOUD_NAME/image/upload`, {
+        const res = await fetch(`https://api.cloudinary.com/v1_1/dvjxx6syx/image/upload`, {
           method: 'POST',
           body: formData,
         });
