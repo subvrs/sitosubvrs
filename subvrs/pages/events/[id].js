@@ -69,13 +69,13 @@ export default function EventPage({ event }) {
           <Link href="/events" style={{ fontSize: '12px', color: 'var(--text2)', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'inline-block', marginBottom: '20px' }}>
             ← Tutti gli eventi
           </Link>
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
-            {(event.genre || []).map(g => <span key={g} className="tag violet">{g}</span>)}
-            {isPast && <span className="tag past">Evento passato</span>}
-          </div>
-          <h1 style={{ fontSize: 'clamp(40px, 8vw, 90px)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 0.9 }}>
-            {event.name}
-          </h1>
+          <h1 style={{ fontSize: 'clamp(40px, 8vw, 90px)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 0.9, marginBottom: '16px' }}>
+  {event.name}
+</h1>
+<div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+  {(event.genre || []).map(g => <span key={g} className="tag violet">{g}</span>)}
+  {isPast && <span className="tag past">Evento passato</span>}
+</div>
         </div>
       </section>
 
