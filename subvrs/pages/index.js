@@ -62,7 +62,7 @@ export default function Home({ nextEvent }) {
             SUBVRS
           </h1>
           <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', color: 'var(--text2)', maxWidth: '480px', lineHeight: 1.6, marginBottom: '40px', fontWeight: 400 }}>
-            Selezione musicale. Vibrazioni. House, disco e tutto quello che ti fa ballare.
+            Selezione musicale. Community. Eventi e tutto ciò che ti fa stare bene.
           </p>
           <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
             <Link href="/events" className="btn-primary">Prossimi eventi</Link>
@@ -144,7 +144,7 @@ export default function Home({ nextEvent }) {
         <div style={{ flex: '1 1 300px' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '16px' }}>Chi siamo</div>
           <h2 style={{ fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: '24px' }}>
-            COME AS<br />YOU ARE.
+            NO POSE.<br />JUST MUSIC.
           </h2>
         </div>
         <div style={{ flex: '1 1 400px' }}>
