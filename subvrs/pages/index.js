@@ -39,7 +39,7 @@ export default function Home({ nextEvent }) {
     <>
       <Head>
         <title>SUBVRS — House. Disco. Torino.</title>
-        <meta name="description" content="SUBVRS è un collettivo di eventi musicali basato a Torino. House, disco, disco house." />
+        <meta name="description" content="SUBVRS è un collettivo di eventi musicali basato a Torino." />
       </Head>
 
       <section ref={heroRef} style={{
