@@ -62,7 +62,7 @@ export default function Home({ nextEvent }) {
             SUBVRS
           </h1>
           <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', color: 'var(--text2)', maxWidth: '480px', lineHeight: 1.6, marginBottom: '40px', fontWeight: 400 }}>
-            Selezione musicale. Community. Eventi e tutto ciò che ti fa stare bene.
+            Eventi. Feste. Musica e tutto ciò che ti fa stare bene.
           </p>
           <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
             <Link href="/events" className="btn-primary">Prossimi eventi</Link>
