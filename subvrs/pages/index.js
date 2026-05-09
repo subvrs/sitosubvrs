@@ -38,7 +38,7 @@ export default function Home({ nextEvent }) {
   return (
     <>
       <Head>
-        <title>SUBVRS.</title>
+        <title>SUBVRS - Electronic music organization. </title>
         <meta name="description" content="SUBVRS è un collettivo di eventi musicali basato a Torino." />
       </Head>
 
