@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 export async function getServerSideProps() {
@@ -13,12 +13,25 @@ export async function getServerSideProps() {
 export default function Media({ events }) {
   const [selected, setSelected] = useState(null);
   const [lightbox, setLightbox] = useState(null);
-  const [downloadPhoto, setDownloadPhoto] = useState(null);
+  const [verified, setVerified] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+  const [showAuth, setShowAuth] = useState(false);
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState('email'); // email | otp | done
+  const [step, setStep] = useState('email');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [downloadTarget, setDownloadTarget] = useState(null);
+
+  // Check session on load
+  useEffect(() => {
+    const saved = localStorage.getItem('subvrs_email');
+    const expiry = localStorage.getItem('subvrs_expiry');
+    if (saved && expiry && new Date(expiry) > new Date()) {
+      setVerified(true);
+      setUserEmail(saved);
+    }
+  }, []);
 
   const eventsWithPhotos = events.filter(e => e.photos && e.photos.length > 0);
   const allPhotos = eventsWithPhotos.flatMap(e =>
@@ -26,24 +39,35 @@ export default function Media({ events }) {
   );
   const filteredPhotos = selected ? allPhotos.filter(p => p.eventId === selected) : allPhotos;
 
-  const openDownload = (photo) => {
-    setDownloadPhoto(photo);
-    setEmail('');
-    setOtp('');
-    setStep('email');
-    setError(null);
-    setLightbox(null);
+  const handleDownloadClick = (photo) => {
+    if (verified) {
+      triggerDownload(photo.src);
+    } else {
+      setDownloadTarget(photo);
+      setShowAuth(true);
+      setStep('email');
+      setError(null);
+      setEmail('');
+      setOtp('');
+    }
+  };
+
+  const triggerDownload = (url) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'subvrs-photo.jpg';
+    link.target = '_blank';
+    link.click();
   };
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
-    if (!email) return;
     setLoading(true);
     setError(null);
     const res = await fetch('/api/send-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, photo_url: downloadPhoto.src, event_id: downloadPhoto.eventId }),
+      body: JSON.stringify({ email, photo_url: downloadTarget?.src || '', event_id: downloadTarget?.eventId || '' }),
     });
     const data = await res.json();
     setLoading(false);
@@ -53,27 +77,34 @@ export default function Media({ events }) {
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    if (!otp) return;
     setLoading(true);
     setError(null);
     const res = await fetch('/api/verify-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, otp, photo_url: downloadPhoto.src }),
+      body: JSON.stringify({ email, otp, photo_url: downloadTarget?.src || '' }),
     });
     const data = await res.json();
     setLoading(false);
     if (data.success) {
-      setStep('done');
-      // Trigger download
-      const link = document.createElement('a');
-      link.href = data.photo_url;
-      link.download = 'subvrs-photo.jpg';
-      link.target = '_blank';
-      link.click();
+      // Save session for 24 hours
+      const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      localStorage.setItem('subvrs_email', email);
+      localStorage.setItem('subvrs_expiry', expiry);
+      setVerified(true);
+      setUserEmail(email);
+      setShowAuth(false);
+      if (downloadTarget) triggerDownload(downloadTarget.src);
     } else {
       setError(data.error || 'Codice non valido.');
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('subvrs_email');
+    localStorage.removeItem('subvrs_expiry');
+    setVerified(false);
+    setUserEmail('');
   };
 
   return (
@@ -81,9 +112,18 @@ export default function Media({ events }) {
       <Head><title>Media — SUBVRS</title></Head>
 
       <div style={{ padding: '60px 40px 0' }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '12px' }}>Foto & Video</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px', marginBottom: '12px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text2)' }}>Foto & Video</div>
+          {verified && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text2)' }}>✓ {userEmail}</span>
+              <button onClick={handleLogout} style={{ background: 'none', border: '1px solid var(--border2)', color: 'var(--text2)', padding: '4px 12px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontFamily: 'Poppins' }}>Esci</button>
+            </div>
+          )}
+        </div>
         <h1 style={{ fontSize: 'clamp(40px, 7vw, 80px)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 0.95, marginBottom: '40px' }}>MEDIA</h1>
 
+        {/* Filter */}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '48px' }}>
           <button onClick={() => setSelected(null)} style={{ background: selected === null ? 'var(--accent)' : 'transparent', border: `1px solid ${selected === null ? 'var(--accent)' : 'var(--border2)'}`, color: selected === null ? '#fff' : 'var(--text2)', padding: '8px 18px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s' }}>Tutti</button>
           {eventsWithPhotos.map(e => (
@@ -92,8 +132,16 @@ export default function Media({ events }) {
         </div>
       </div>
 
+      {/* Gallery */}
       {filteredPhotos.length > 0 ? (
         <div style={{ padding: '0 40px 80px' }}>
+          {!verified && (
+            <div style={{ marginBottom: '24px', padding: '16px 20px', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ fontSize: '14px', color: 'var(--text2)' }}>Verifica la tua email per scaricare le foto in alta qualità.</div>
+              <button onClick={() => { setShowAuth(true); setStep('email'); setDownloadTarget(null); }} className="btn-primary" style={{ fontSize: '12px', padding: '8px 20px' }}>Accedi per scaricare</button>
+            </div>
+          )}
+
           <div style={{ columns: '3 250px', gap: '4px' }}>
             {filteredPhotos.map((photo, i) => (
               <div key={i} style={{ breakInside: 'avoid', marginBottom: '4px', position: 'relative', overflow: 'hidden', borderRadius: '2px' }}
@@ -101,19 +149,10 @@ export default function Media({ events }) {
                 onMouseLeave={e => e.currentTarget.querySelector('.overlay').style.opacity = '0'}
               >
                 <img src={photo.src} alt={photo.event} onClick={() => setLightbox(photo)}
-                  style={{ width: '100%', display: 'block', cursor: 'zoom-in' }}
-                />
-                <div className="overlay" style={{
-                  position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  opacity: 0, transition: 'opacity 0.2s', gap: '12px',
-                }}>
-                  <button onClick={() => setLightbox(photo)} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', padding: '8px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
-                    Vedi
-                  </button>
-                  <button onClick={() => openDownload(photo)} style={{ background: 'var(--accent)', border: 'none', color: '#fff', padding: '8px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
-                    Scarica
-                  </button>
+                  style={{ width: '100%', display: 'block', cursor: 'zoom-in' }} />
+                <div className="overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s', gap: '12px' }}>
+                  <button onClick={() => setLightbox(photo)} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', padding: '8px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Vedi</button>
+                  <button onClick={() => handleDownloadClick(photo)} style={{ background: 'var(--accent)', border: 'none', color: '#fff', padding: '8px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Scarica</button>
                 </div>
               </div>
             ))}
@@ -127,31 +166,29 @@ export default function Media({ events }) {
         </div>
       )}
 
-      {/* LIGHTBOX */}
+      {/* Lightbox */}
       {lightbox && (
         <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.95)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', cursor: 'zoom-out' }}>
           <img src={lightbox.src} alt={lightbox.event} style={{ maxHeight: '85vh', maxWidth: '85vw', objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
           <div style={{ position: 'absolute', bottom: '24px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '12px', alignItems: 'center' }}>
             <span style={{ fontSize: '13px', fontWeight: 600 }}>{lightbox.event}</span>
-            <button onClick={(e) => { e.stopPropagation(); openDownload(lightbox); }} className="btn-primary" style={{ fontSize: '12px', padding: '8px 20px' }}>
-              Scarica foto
-            </button>
+            <button onClick={(e) => { e.stopPropagation(); handleDownloadClick(lightbox); }} className="btn-primary" style={{ fontSize: '12px', padding: '8px 20px' }}>Scarica foto</button>
           </div>
           <button onClick={() => setLightbox(null)} style={{ position: 'absolute', top: '24px', right: '24px', background: 'none', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer' }}>✕</button>
         </div>
       )}
 
-      {/* DOWNLOAD POPUP */}
-      {downloadPhoto && (
-        <div onClick={() => setDownloadPhoto(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', backdropFilter: 'blur(8px)' }}>
+      {/* Auth popup */}
+      {showAuth && (
+        <div onClick={() => setShowAuth(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', backdropFilter: 'blur(8px)' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: '12px', padding: '40px', maxWidth: '420px', width: '100%', position: 'relative' }}>
-            <button onClick={() => setDownloadPhoto(null)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: 'var(--text2)', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+            <button onClick={() => setShowAuth(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: 'var(--text2)', fontSize: '20px', cursor: 'pointer' }}>✕</button>
 
             {step === 'email' && (
               <>
-                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: '12px' }}>Download foto</div>
+                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: '12px' }}>Accesso download</div>
                 <h3 style={{ fontSize: '22px', fontWeight: 900, marginBottom: '8px' }}>Inserisci la tua email</h3>
-                <p style={{ fontSize: '14px', color: 'var(--text2)', marginBottom: '28px', lineHeight: 1.6 }}>Ti mandiamo un codice per verificare la tua identità. Niente spam, promesso.</p>
+                <p style={{ fontSize: '14px', color: 'var(--text2)', marginBottom: '28px', lineHeight: 1.6 }}>Ti mandiamo un codice. Una volta verificata puoi scaricare tutte le foto senza reinserire niente per 24 ore.</p>
                 <form onSubmit={handleSendOtp}>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="la.tua@email.com" style={{ marginBottom: '12px' }} required />
                   {error && <div style={{ fontSize: '12px', color: 'var(--accent)', marginBottom: '12px' }}>{error}</div>}
@@ -166,30 +203,19 @@ export default function Media({ events }) {
               <>
                 <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: '12px' }}>Verifica email</div>
                 <h3 style={{ fontSize: '22px', fontWeight: 900, marginBottom: '8px' }}>Controlla la mail</h3>
-                <p style={{ fontSize: '14px', color: 'var(--text2)', marginBottom: '28px', lineHeight: 1.6 }}>Abbiamo inviato un codice a <strong style={{ color: 'var(--text)' }}>{email}</strong>. Inseriscilo qui sotto.</p>
+                <p style={{ fontSize: '14px', color: 'var(--text2)', marginBottom: '28px', lineHeight: 1.6 }}>Codice inviato a <strong style={{ color: 'var(--text)' }}>{email}</strong>. Valido per 10 minuti.</p>
                 <form onSubmit={handleVerifyOtp}>
                   <input type="text" value={otp} onChange={e => setOtp(e.target.value)} placeholder="000000" maxLength={6}
-                    style={{ marginBottom: '12px', fontSize: '24px', fontWeight: 700, letterSpacing: '0.3em', textAlign: 'center' }} required />
+                    style={{ marginBottom: '12px', fontSize: '28px', fontWeight: 900, letterSpacing: '0.3em', textAlign: 'center' }} required />
                   {error && <div style={{ fontSize: '12px', color: 'var(--accent)', marginBottom: '12px' }}>{error}</div>}
                   <button type="submit" className="btn-primary" style={{ width: '100%' }} disabled={loading}>
-                    {loading ? 'Verifica...' : 'Scarica foto'}
+                    {loading ? 'Verifica...' : 'Conferma e scarica'}
                   </button>
                 </form>
                 <button onClick={() => setStep('email')} style={{ background: 'none', border: 'none', color: 'var(--text2)', fontSize: '12px', cursor: 'pointer', marginTop: '12px', display: 'block', width: '100%', textAlign: 'center' }}>
                   Cambia email
                 </button>
               </>
-            )}
-
-            {step === 'done' && (
-              <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>✓</div>
-                <h3 style={{ fontSize: '22px', fontWeight: 900, marginBottom: '8px' }}>Download avviato!</h3>
-                <p style={{ fontSize: '14px', color: 'var(--text2)', lineHeight: 1.6 }}>Se il download non parte automaticamente, clicca qui sotto.</p>
-                <a href={downloadPhoto.src} download target="_blank" className="btn-primary" style={{ display: 'inline-block', marginTop: '20px' }}>
-                  Scarica di nuovo
-                </a>
-              </div>
             )}
           </div>
         </div>
