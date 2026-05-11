@@ -116,7 +116,7 @@ export default function Media({ events }) {
           <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text2)' }}>Foto & Video</div>
           {verified && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text2)' }}>✓ {userEmail}</span>
+              <span style={{ fontSize: '12px', color: 'var(--text2)' }}>✓ Sessione attiva — puoi scaricare tutte le foto</span>
               <button onClick={handleLogout} style={{ background: 'none', border: '1px solid var(--border2)', color: 'var(--text2)', padding: '4px 12px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontFamily: 'Poppins' }}>Esci</button>
             </div>
           )}
@@ -135,12 +135,6 @@ export default function Media({ events }) {
       {/* Gallery */}
       {filteredPhotos.length > 0 ? (
         <div style={{ padding: '0 40px 80px' }}>
-          {!verified && (
-            <div style={{ marginBottom: '24px', padding: '16px 20px', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-              <div style={{ fontSize: '14px', color: 'var(--text2)' }}>Verifica la tua email per scaricare le foto in alta qualità.</div>
-              <button onClick={() => { setShowAuth(true); setStep('email'); setDownloadTarget(null); }} className="btn-primary" style={{ fontSize: '12px', padding: '8px 20px' }}>Accedi per scaricare</button>
-            </div>
-          )}
 
           <div style={{ columns: '3 250px', gap: '4px' }}>
             {filteredPhotos.map((photo, i) => (
@@ -188,7 +182,7 @@ export default function Media({ events }) {
               <>
                 <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: '12px' }}>Accesso download</div>
                 <h3 style={{ fontSize: '22px', fontWeight: 900, marginBottom: '8px' }}>Inserisci la tua email</h3>
-                <p style={{ fontSize: '14px', color: 'var(--text2)', marginBottom: '28px', lineHeight: 1.6 }}>Ti mandiamo un codice. Una volta verificata puoi scaricare tutte le foto senza reinserire niente per 24 ore.</p>
+                <p style={{ fontSize: '14px', color: 'var(--text2)', marginBottom: '28px', lineHeight: 1.6 }}>Inserisci la tua email — ti mandiamo un codice. Verificata una volta, puoi scaricare tutte le foto che vuoi per le prossime 24 ore senza dover fare nulla.</p>
                 <form onSubmit={handleSendOtp}>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="la.tua@email.com" style={{ marginBottom: '12px' }} required />
                   {error && <div style={{ fontSize: '12px', color: 'var(--accent)', marginBottom: '12px' }}>{error}</div>}
