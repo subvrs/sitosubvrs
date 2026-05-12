@@ -2,6 +2,17 @@ import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
+// Cloudinary URL transformer
+const getThumbUrl = (url) => {
+  if (!url || !url.includes('cloudinary.com')) return url;
+  return url.replace('/upload/', '/upload/w_800,q_75,f_auto/');
+};
+
+const getFullUrl = (url) => {
+  if (!url || !url.includes('cloudinary.com')) return url;
+  return url.replace('/upload/', '/upload/q_90,f_auto/');
+};
+
 export async function getServerSideProps() {
   const { data: events } = await supabase
     .from('events')
@@ -142,7 +153,8 @@ export default function Media({ events }) {
                 onMouseEnter={e => e.currentTarget.querySelector('.overlay').style.opacity = '1'}
                 onMouseLeave={e => e.currentTarget.querySelector('.overlay').style.opacity = '0'}
               >
-                <img src={photo.src} alt={photo.event} onClick={() => setLightbox(photo)}
+                <img src={getThumbUrl(photo.src)} alt={photo.event} onClick={() => setLightbox(photo)}
+                  loading="lazy"
                   style={{ width: '100%', display: 'block', cursor: 'zoom-in' }} />
                 <div className="overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s', gap: '12px' }}>
                   <button onClick={() => setLightbox(photo)} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', padding: '8px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Vedi</button>
@@ -163,7 +175,7 @@ export default function Media({ events }) {
       {/* Lightbox */}
       {lightbox && (
         <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.95)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', cursor: 'zoom-out' }}>
-          <img src={lightbox.src} alt={lightbox.event} style={{ maxHeight: '85vh', maxWidth: '85vw', objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
+          <img src={getFullUrl(lightbox.src)} alt={lightbox.event} style={{ maxHeight: '85vh', maxWidth: '85vw', objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
           <div style={{ position: 'absolute', bottom: '24px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '12px', alignItems: 'center' }}>
             <span style={{ fontSize: '13px', fontWeight: 600 }}>{lightbox.event}</span>
             <button onClick={(e) => { e.stopPropagation(); handleDownloadClick(lightbox); }} className="btn-primary" style={{ fontSize: '12px', padding: '8px 20px' }}>Scarica foto</button>
