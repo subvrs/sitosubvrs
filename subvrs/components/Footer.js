@@ -28,11 +28,11 @@ export default function Footer() {
           style={{ fontSize: '12px', color: 'var(--text2)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           Instagram
         </a>
-        <a href="https://ra.co" target="_blank" rel="noopener"
+        <a href="https://it.ra.co/events/2438659" target="_blank" rel="noopener"
           style={{ fontSize: '12px', color: 'var(--text2)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           Resident Advisor
         </a>
-        <a href="https://xceed.me" target="_blank" rel="noopener"
+        <a href="https://xceed.me/en/torino/event/discopo-1/230858" target="_blank" rel="noopener"
           style={{ fontSize: '12px', color: 'var(--text2)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
           Xceed
         </a>
