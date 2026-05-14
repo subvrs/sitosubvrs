@@ -87,13 +87,13 @@ export function SocialLinks() {
       </a>
 
       {/* Resident Advisor */}
-      <a href="https://ra.co" target="_blank" rel="noopener" aria-label="Resident Advisor" style={{ ...linkStyle, fontSize: '11px', fontWeight: 800, letterSpacing: '0.05em' }}
+      <a href="https://it.ra.co/events/2438659" target="_blank" rel="noopener" aria-label="Resident Advisor" style={{ ...linkStyle, fontSize: '11px', fontWeight: 800, letterSpacing: '0.05em' }}
         onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'}
         onMouseLeave={e => e.currentTarget.style.color = 'var(--text2)'}
       >RA</a>
 
       {/* Xceed */}
-      <a href="https://xceed.me" target="_blank" rel="noopener" aria-label="Xceed" style={{ ...linkStyle, fontSize: '11px', fontWeight: 800, letterSpacing: '0.05em' }}
+      <a href="https://xceed.me/en/torino/event/discopo-1/230858" target="_blank" rel="noopener" aria-label="Xceed" style={{ ...linkStyle, fontSize: '11px', fontWeight: 800, letterSpacing: '0.05em' }}
         onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'}
         onMouseLeave={e => e.currentTarget.style.color = 'var(--text2)'}
       >XC</a>
