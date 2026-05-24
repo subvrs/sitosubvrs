@@ -22,7 +22,7 @@ export default function Navbar() {
         </Link>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }} className="nav-links">
-          {[['/', 'Home'], ['/events', 'Events'], ['/media', 'Media']].map(([href, label]) => (
+          {[['/', 'Home'], ['/events', 'Events'], ['/artists', 'Artists'], ['/media', 'Media']].map(([href, label]) => (
             <Link key={href} href={href} style={{
               fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em',
               textTransform: 'uppercase',
@@ -49,7 +49,7 @@ export default function Navbar() {
           background: 'var(--bg)', borderBottom: '1px solid var(--border)',
           padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: '20px',
         }}>
-          {[['/', 'Home'], ['/events', 'Events'], ['/media', 'Media']].map(([href, label]) => (
+          {[['/', 'Home'], ['/events', 'Events'], ['/artists', 'Artists'], ['/media', 'Media']].map(([href, label]) => (
             <Link key={href} href={href} onClick={() => setOpen(false)} style={{
               fontSize: '20px', fontWeight: 700, letterSpacing: '0.05em',
               color: router.pathname === href ? 'var(--accent)' : 'var(--text)',
