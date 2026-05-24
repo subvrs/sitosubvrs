@@ -25,7 +25,7 @@ const ARTISTS = [
     origin: 'Torino',
     born: '2002',
     genres: ['House', 'Electro', 'Deep Tech', 'Techno', 'Minimal'],
-    bio: "Classe 2002. I suoi set hanno un'acidità che non si spiega, si sente. Loop ipnotici, percussioni secche, sequenze che sembrano uscire da un club sotterraneo di Berlino anni Novanta. Suona cose che non trovi nelle playlist, e probabilmente non è un caso. Underground per scelta, non per postura.",
+    bio: "Classe 2002. Sequenze acide, kick che pesano, loop che girano finché non smetti di resistere. Roba che sembra uscita da un club sotterraneo di Berlino anni Novanta. Suona cose che non trovi nelle playlist, e probabilmente non è un caso. Underground per scelta, non per postura.",
     photo: '/images/gabrielegouti.jpeg',
     instagram: 'gabriele_goduti_',
     color: 'var(--violet)',
