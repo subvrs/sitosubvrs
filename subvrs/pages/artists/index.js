@@ -239,7 +239,7 @@ function ArtistSection({ artist }) {
             ref={bioRef}
             style={{
               position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-              display: 'grid', gridTemplateColumns: '1fr 1fr',
+              display: 'grid',
               opacity: 0, willChange: 'opacity, transform', pointerEvents: 'none',
             }}
             className="grid-panel"
@@ -302,7 +302,7 @@ function ArtistSection({ artist }) {
             ref={connectRef}
             style={{
               position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-              display: 'grid', gridTemplateColumns: '1fr 1fr',
+              display: 'grid',
               opacity: 0, willChange: 'opacity, transform', pointerEvents: 'none',
             }}
             className="grid-panel"
@@ -330,6 +330,7 @@ function ArtistSection({ artist }) {
               </div>
               {artist.instagram ? (
                 <a
+                  className="ig-link"
                   href={`https://instagram.com/${artist.instagram}`}
                   target="_blank" rel="noopener"
                   style={{
@@ -362,8 +363,13 @@ function ArtistSection({ artist }) {
       <style jsx>{`
         .grid-panel { display: grid; grid-template-columns: 1fr 1fr; }
         @media (max-width: 768px) {
-          .grid-panel { grid-template-columns: 1fr; overflow-y: auto; }
-          .grid-left { border-right: none !important; border-bottom: 1px solid var(--border); }
+          .grid-panel { grid-template-columns: 1fr; }
+          .grid-left {
+            border-right: none !important;
+            border-bottom: 1px solid var(--border);
+            padding: 28px 20px !important;
+          }
+          .grid-right { padding: 28px 20px !important; }
           .bio-right { align-items: center; text-align: center; }
           .bio-para {
             text-align: center;
@@ -371,6 +377,12 @@ function ArtistSection({ artist }) {
             padding-bottom: 32px;
             -webkit-mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
             mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
+          }
+          .ig-link {
+            max-width: 100%;
+            overflow: hidden;
+            word-break: break-word;
+            font-size: clamp(16px, 4vw, 24px) !important;
           }
         }
       `}</style>
