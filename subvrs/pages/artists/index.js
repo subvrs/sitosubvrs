@@ -61,7 +61,7 @@ function setLayer(el, op, ty) {
   el.style.pointerEvents = op > 0.05 ? 'auto' : 'none';
 }
 
-function ArtistSection({ artist }) {
+function ArtistSection({ artist, index }) {
   const sectionRef  = useRef(null);
   const overlayRef  = useRef(null);
   const topBarRef   = useRef(null);
@@ -76,9 +76,12 @@ function ArtistSection({ artist }) {
     const section = sectionRef.current;
     if (!section) return;
 
+    let ticking = false;
     let rafId = null;
 
     const update = () => {
+      if (ticking) return;
+      ticking = true;
       rafId = requestAnimationFrame(() => {
         const rect  = section.getBoundingClientRect();
         const total = section.offsetHeight - window.innerHeight;
@@ -116,9 +119,11 @@ function ArtistSection({ artist }) {
         if (hintRef.current)
           hintRef.current.style.opacity = fade(p, 0, 0.04, 0.10, 0.20);
 
-        // Progress bar
+        // Progress bar — scaleX avoids layout reflow (width would trigger it)
         if (progBarRef.current)
-          progBarRef.current.style.width = `${p * 100}%`;
+          progBarRef.current.style.transform = `scaleX(${p})`;
+
+        ticking = false;
       });
     };
 
@@ -147,12 +152,13 @@ function ArtistSection({ artist }) {
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
             <img
               src={artist.photo} alt={artist.name}
+              loading={index === 0 ? 'eager' : 'lazy'}
+              decoding="async"
               style={{
                 width: '100%', height: '100%',
                 objectFit: 'cover', objectPosition: 'center center',
                 filter: 'brightness(0.52)',
                 display: 'block',
-                willChange: 'auto',
               }}
             />
             {/* Static bottom vignette */}
@@ -355,7 +361,7 @@ function ArtistSection({ artist }) {
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px', background: 'var(--border)' }}>
           <div
             ref={progBarRef}
-            style={{ height: '100%', background: artist.color, width: '0%', willChange: 'width' }}
+            style={{ height: '100%', background: artist.color, width: '100%', transform: 'scaleX(0)', transformOrigin: 'left', willChange: 'transform' }}
           />
         </div>
       </div>
@@ -398,9 +404,9 @@ export default function Artists() {
         <meta name="description" content="I DJ di SUBVRS. Scorri per scoprire la loro storia e il loro sound." />
       </Head>
 
-      {ARTISTS.map(artist => (
+      {ARTISTS.map((artist, i) => (
         <div key={artist.slug} id={artist.slug}>
-          <ArtistSection artist={artist} />
+          <ArtistSection artist={artist} index={i} />
         </div>
       ))}
 
