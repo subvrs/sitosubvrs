@@ -253,11 +253,11 @@ function ArtistSection({ artist }) {
               </h3>
               <div style={{ width: '36px', height: '2px', background: artist.color }} />
             </div>
-            <div className="grid-right" style={{ padding: '48px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div className="grid-right bio-right" style={{ padding: '48px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '32px' }}>
                 Bio
               </div>
-              <p style={{ fontSize: 'clamp(15px, 1.6vw, 19px)', lineHeight: 1.85, color: 'var(--text)', fontWeight: 400, maxWidth: '520px' }}>
+              <p className="bio-para" style={{ fontSize: 'clamp(15px, 1.6vw, 19px)', lineHeight: 1.85, color: 'var(--text)', fontWeight: 400, maxWidth: '520px' }}>
                 {artist.bio}
               </p>
             </div>
@@ -364,6 +364,14 @@ function ArtistSection({ artist }) {
         @media (max-width: 768px) {
           .grid-panel { grid-template-columns: 1fr; overflow-y: auto; }
           .grid-left { border-right: none !important; border-bottom: 1px solid var(--border); }
+          .bio-right { align-items: center; text-align: center; }
+          .bio-para {
+            text-align: center;
+            max-width: 100% !important;
+            padding-bottom: 32px;
+            -webkit-mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
+            mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
+          }
         }
       `}</style>
     </div>
