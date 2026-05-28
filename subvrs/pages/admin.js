@@ -12,6 +12,7 @@ const EMPTY_EVENT = {
   description: '', happy_hour: '', entry: 'Ingresso libero con accredito obbligatorio',
   dress_code: 'Smart casual', age_limit: '18+', ticket_link: '', status: 'upcoming', flyer: '',
   lineup: [{ ...EMPTY_ARTIST }],
+  featured_photos: [],
 };
 
 export default function Admin() {
@@ -53,6 +54,16 @@ export default function Admin() {
   const addArtist = () => setForm(f => ({ ...f, lineup: [...f.lineup, { ...EMPTY_ARTIST }] }));
   const removeArtist = (i) => setForm(f => ({ ...f, lineup: f.lineup.filter((_, idx) => idx !== i) }));
 
+  const toggleFeatured = (photoUrl) => setForm(f => {
+    const featured = f.featured_photos || [];
+    return {
+      ...f,
+      featured_photos: featured.includes(photoUrl)
+        ? featured.filter(u => u !== photoUrl)
+        : [...featured, photoUrl],
+    };
+  });
+
   const generateId = (name, date) => {
     const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     return `${slug}-${date.slice(0, 7)}`;
@@ -85,7 +96,7 @@ export default function Admin() {
   };
 
   const handleEdit = (event) => {
-    setForm({ ...event, lineup: event.lineup || [{ ...EMPTY_ARTIST }] });
+    setForm({ ...event, lineup: event.lineup || [{ ...EMPTY_ARTIST }], featured_photos: event.featured_photos || [] });
     setView('edit');
     setMsg(null);
   };
@@ -288,6 +299,39 @@ export default function Admin() {
               </div>
               <button type="button" onClick={addArtist} className="btn-outline" style={{ fontSize: '12px', padding: '8px 18px' }}>+ Aggiungi artista</button>
             </div>
+
+            {/* FOTO IN EVIDENZA */}
+            {form.photos && form.photos.length > 0 && (
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  Foto in evidenza — &ldquo;Le migliori&rdquo;
+                  <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+                  <span style={{ fontSize: '11px', color: 'var(--text2)', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'none' }}>
+                    {(form.featured_photos || []).length} selezionate
+                  </span>
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '16px', lineHeight: 1.5 }}>
+                  Clicca sulle foto per aggiungerle o rimuoverle dalla sezione &ldquo;Le migliori&rdquo; nella pagina Media.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '6px' }}>
+                  {form.photos.map((photoUrl, i) => {
+                    const isFeatured = (form.featured_photos || []).includes(photoUrl);
+                    return (
+                      <div key={i} onClick={() => toggleFeatured(photoUrl)} style={{
+                        position: 'relative', cursor: 'pointer', borderRadius: '4px', overflow: 'hidden',
+                        border: `2px solid ${isFeatured ? 'var(--accent)' : 'transparent'}`,
+                        transition: 'border-color 0.15s',
+                      }}>
+                        <img src={photoUrl} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block', opacity: isFeatured ? 1 : 0.55, transition: 'opacity 0.15s' }} />
+                        {isFeatured && (
+                          <div style={{ position: 'absolute', top: '4px', right: '4px', background: 'var(--accent)', borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#fff', fontWeight: 900 }}>★</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <button onClick={handleSave} disabled={saving} className="btn-primary"
               style={{ padding: '16px', fontSize: '14px', opacity: saving ? 0.7 : 1 }}>

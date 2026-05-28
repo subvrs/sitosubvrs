@@ -16,13 +16,13 @@ const getFullUrl = (url) => {
 export async function getServerSideProps() {
   const { data: events } = await supabase
     .from('events')
-    .select('id, name, date, photos')
+    .select('id, name, date, photos, featured_photos')
     .order('date', { ascending: false });
   return { props: { events: events || [] } };
 }
 
 export default function Media({ events }) {
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState('best');
   const [lightbox, setLightbox] = useState(null);
   const [verified, setVerified] = useState(false);
   const [userEmail, setUserEmail] = useState('');
@@ -48,7 +48,15 @@ export default function Media({ events }) {
   const allPhotos = eventsWithPhotos.flatMap(e =>
     e.photos.map(p => ({ src: p, event: e.name, eventId: e.id, date: e.date }))
   );
-  const filteredPhotos = selected ? allPhotos.filter(p => p.eventId === selected) : allPhotos;
+  const bestPhotos = events.flatMap(e =>
+    (e.featured_photos || []).map(p => ({ src: p, event: e.name, eventId: e.id, date: e.date }))
+  );
+  const filteredPhotos = selected === 'best'
+    ? bestPhotos
+    : allPhotos.filter(p => p.eventId === selected);
+
+  const formatEventDate = (dateStr) =>
+    new Date(dateStr).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
 
   const handleDownloadClick = (photo) => {
     if (verified) {
@@ -136,9 +144,12 @@ export default function Media({ events }) {
 
         {/* Filter */}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '48px' }}>
-          <button onClick={() => setSelected(null)} style={{ background: selected === null ? 'var(--accent)' : 'transparent', border: `1px solid ${selected === null ? 'var(--accent)' : 'var(--border2)'}`, color: selected === null ? '#fff' : 'var(--text2)', padding: '8px 18px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s' }}>Tutti</button>
+          <button onClick={() => setSelected('best')} style={{ background: selected === 'best' ? 'var(--accent)' : 'transparent', border: `1px solid ${selected === 'best' ? 'var(--accent)' : 'var(--border2)'}`, color: selected === 'best' ? '#fff' : 'var(--text2)', padding: '8px 18px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s' }}>Le migliori</button>
           {eventsWithPhotos.map(e => (
-            <button key={e.id} onClick={() => setSelected(e.id)} style={{ background: selected === e.id ? 'var(--accent)' : 'transparent', border: `1px solid ${selected === e.id ? 'var(--accent)' : 'var(--border2)'}`, color: selected === e.id ? '#fff' : 'var(--text2)', padding: '8px 18px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s' }}>{e.name}</button>
+            <button key={e.id} onClick={() => setSelected(e.id)} style={{ background: selected === e.id ? 'var(--accent)' : 'transparent', border: `1px solid ${selected === e.id ? 'var(--accent)' : 'var(--border2)'}`, color: selected === e.id ? '#fff' : 'var(--text2)', padding: '8px 18px 7px', borderRadius: '4px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{e.name}</span>
+              <span style={{ fontSize: '10px', fontWeight: 500, letterSpacing: '0.05em', opacity: selected === e.id ? 0.85 : 0.6 }}>{formatEventDate(e.date)}</span>
+            </button>
           ))}
         </div>
       </div>
@@ -167,8 +178,14 @@ export default function Media({ events }) {
       ) : (
         <div style={{ padding: '80px 40px', textAlign: 'center' }}>
           <div style={{ fontSize: '40px', marginBottom: '16px' }}>📸</div>
-          <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>Nessuna foto ancora</div>
-          <div style={{ fontSize: '14px', color: 'var(--text2)' }}>Le foto dei nostri eventi appariranno qui dopo ogni serata.</div>
+          <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
+            {selected === 'best' ? 'Selezione in arrivo' : 'Nessuna foto ancora'}
+          </div>
+          <div style={{ fontSize: '14px', color: 'var(--text2)' }}>
+            {selected === 'best'
+              ? 'Stiamo scegliendo le foto migliori — torna presto.'
+              : 'Le foto di questo evento appariranno qui.'}
+          </div>
         </div>
       )}
 
