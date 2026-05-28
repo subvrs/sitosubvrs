@@ -304,14 +304,14 @@ export default function Admin() {
             {form.photos && form.photos.length > 0 && (
               <div>
                 <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  Foto in evidenza — &ldquo;Le migliori&rdquo;
+                  Foto in evidenza — &ldquo;Best of&rdquo;
                   <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
                   <span style={{ fontSize: '11px', color: 'var(--text2)', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'none' }}>
                     {(form.featured_photos || []).length} selezionate
                   </span>
                 </div>
                 <p style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '16px', lineHeight: 1.5 }}>
-                  Clicca sulle foto per aggiungerle o rimuoverle dalla sezione &ldquo;Le migliori&rdquo; nella pagina Media.
+                  Clicca sulle foto per aggiungerle o rimuoverle dalla sezione &ldquo;Best of&rdquo; nella pagina Media.
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '6px' }}>
                   {form.photos.map((photoUrl, i) => {
