@@ -155,11 +155,29 @@ export default function Media({ events }) {
             </div>
           )}
         </div>
-        <h1 style={{ fontSize: 'clamp(40px, 7vw, 80px)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 0.95, marginBottom: '64px' }}>MEDIA</h1>
+        <h1 style={{ fontSize: 'clamp(40px, 7vw, 80px)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 0.95, marginBottom: '32px' }}>MEDIA</h1>
+
+        {/* Navigazione sezioni */}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '48px' }}>
+          <a href="#best-of" style={{ background: 'var(--accent)', border: '1px solid var(--accent)', color: '#fff', padding: '8px 18px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', textDecoration: 'none', transition: 'opacity 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.8'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+            Best of
+          </a>
+          {events.map(e => (
+            <a key={e.id} href={`#evento-${e.id}`} style={{ background: 'transparent', border: '1px solid var(--border2)', color: 'var(--text2)', padding: '8px 18px 7px', borderRadius: '4px', textDecoration: 'none', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1px' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--text)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--text2)'; }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{e.name}</span>
+              <span style={{ fontSize: '10px', fontWeight: 500, letterSpacing: '0.05em', opacity: 0.6 }}>
+                {new Date(e.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
+              </span>
+            </a>
+          ))}
+        </div>
       </div>
 
       {/* BEST OF */}
-      <section style={{ padding: '0 40px 80px' }}>
+      <section id="best-of" style={{ padding: '0 40px 80px', scrollMarginTop: '80px' }}>
         <SectionHeader label="Selezione" title="Best of" count={bestPhotos.length} />
         {bestPhotos.length > 0 ? (
           <Gallery photos={bestPhotos} onOpen={openLightbox} onDownload={handleDownloadClick} />
@@ -172,7 +190,7 @@ export default function Media({ events }) {
       {events.map(ev => {
         const photos = (ev.photos || []).map(p => ({ src: p, event: ev.name, eventId: ev.id, date: ev.date }));
         return (
-          <section key={ev.id} style={{ padding: '0 40px 80px' }}>
+          <section key={ev.id} id={`evento-${ev.id}`} style={{ padding: '0 40px 80px', scrollMarginTop: '80px' }}>
             <SectionHeader label={formatEventDate(ev.date)} title={ev.name} count={photos.length} />
             {photos.length > 0 ? (
               <Gallery photos={photos} onOpen={openLightbox} onDownload={handleDownloadClick} />
