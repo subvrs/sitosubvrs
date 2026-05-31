@@ -142,12 +142,12 @@ export default function Media({ events }) {
 
   return (
     <>
-      <Head><title>Media — SUBVRS</title></Head>
+      <Head><title>Gallery — SUBVRS</title></Head>
 
       {/* Header */}
       <div style={{ padding: '60px 40px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px', marginBottom: '12px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text2)' }}>Foto & Video</div>
+          <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text2)' }}>Gallery</div>
           {verified && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: '12px', color: 'var(--text2)' }}>✓ Sessione attiva — puoi scaricare tutte le foto</span>
@@ -155,7 +155,7 @@ export default function Media({ events }) {
             </div>
           )}
         </div>
-        <h1 style={{ fontSize: 'clamp(40px, 7vw, 80px)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 0.95, marginBottom: '32px' }}>MEDIA</h1>
+        <h1 style={{ fontSize: 'clamp(40px, 7vw, 80px)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 0.95, marginBottom: '32px' }}>GALLERY</h1>
 
         {/* Navigazione sezioni */}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '48px' }}>

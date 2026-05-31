@@ -451,7 +451,7 @@ export default function Admin() {
 
             {/* VISIBILITÀ FOTO */}
             {form.photos && form.photos.length > 0 && (
-              <Field label="Visibilità foto nella pagina Media">
+              <Field label="Visibilità foto nella pagina Gallery">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '4px' }}>
                   <button
                     type="button"
@@ -470,7 +470,7 @@ export default function Admin() {
                     }} />
                   </button>
                   <span style={{ fontSize: '13px', color: form.photos_public !== false ? 'var(--text)' : 'var(--text2)', fontWeight: 600 }}>
-                    {form.photos_public !== false ? 'Pubbliche — visibili nella pagina Media' : 'Private — nascoste dalla pagina Media'}
+                    {form.photos_public !== false ? 'Pubbliche — visibili nella pagina Gallery' : 'Private — nascoste dalla pagina Gallery'}
                   </span>
                 </div>
               </Field>

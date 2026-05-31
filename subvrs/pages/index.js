@@ -66,7 +66,7 @@ export default function Home({ nextEvent }) {
           </p>
           <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
             <Link href="/events" className="btn-primary">Prossimi eventi</Link>
-            <Link href="/media" className="btn-outline">Gallery</Link>
+            <Link href="/gallery" className="btn-outline">Gallery</Link>
           </div>
         </div>
 

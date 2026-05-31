@@ -20,7 +20,7 @@ export default function Footer() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {[['/', 'Home'], ['/events', 'Events'], ['/artists', 'Artists'], ['/media', 'Media']].map(([href, label]) => (
+          {[['/', 'Home'], ['/events', 'Events'], ['/artists', 'Artists'], ['/gallery', 'Gallery']].map(([href, label]) => (
             <Link key={href} href={href} style={{
               fontSize: '12px', color: 'var(--text2)', fontWeight: 600,
               letterSpacing: '0.08em', textTransform: 'uppercase',
