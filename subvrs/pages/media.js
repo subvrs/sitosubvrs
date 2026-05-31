@@ -15,10 +15,9 @@ const getFullUrl = (url) => {
 export async function getServerSideProps() {
   const { data: events } = await supabase
     .from('events')
-    .select('id, name, date, photos, featured_photos, photos_public')
+    .select('id, name, date, photos, featured_photos')
     .order('date', { ascending: false });
-  const visible = (events || []).filter(e => e.photos_public !== false);
-  return { props: { events: visible } };
+  return { props: { events: events || [] } };
 }
 
 export default function Media({ events }) {

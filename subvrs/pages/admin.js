@@ -159,7 +159,7 @@ export default function Admin() {
       ...event,
       lineup: event.lineup || [{ ...EMPTY_ARTIST }],
       featured_photos: event.featured_photos || [],
-      photos_public: event.photos_public !== false,
+      photos_public: event.photos_public !== false, // default true se colonna non esiste
     });
     setPhotoLightbox(null);
     setUploadFiles([]);
