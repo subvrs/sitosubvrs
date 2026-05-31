@@ -2,7 +2,6 @@ import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
-// Cloudinary URL transformer
 const getThumbUrl = (url) => {
   if (!url || !url.includes('cloudinary.com')) return url;
   return url.replace('/upload/', '/upload/w_800,q_75,f_auto/');
@@ -23,8 +22,7 @@ export async function getServerSideProps() {
 }
 
 export default function Media({ events }) {
-  const [selected, setSelected] = useState('best');
-  const [lightbox, setLightbox] = useState(null);
+  const [lightbox, setLightbox] = useState(null); // { src, event, eventId, date, list, index }
   const [verified, setVerified] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [showAuth, setShowAuth] = useState(false);
@@ -35,7 +33,6 @@ export default function Media({ events }) {
   const [error, setError] = useState(null);
   const [downloadTarget, setDownloadTarget] = useState(null);
 
-  // Check session on load
   useEffect(() => {
     const saved = localStorage.getItem('subvrs_email');
     const expiry = localStorage.getItem('subvrs_expiry');
@@ -45,18 +42,31 @@ export default function Media({ events }) {
     }
   }, []);
 
-  const allPhotos = events.flatMap(e =>
-    (e.photos || []).map(p => ({ src: p, event: e.name, eventId: e.id, date: e.date }))
-  );
-  const bestPhotos = events.flatMap(e =>
-    (e.featured_photos || []).map(p => ({ src: p, event: e.name, eventId: e.id, date: e.date }))
-  );
-  const filteredPhotos = selected === 'best'
-    ? bestPhotos
-    : allPhotos.filter(p => p.eventId === selected);
+  // Keyboard navigation in lightbox
+  useEffect(() => {
+    if (!lightbox) return;
+    const handler = (e) => {
+      if (e.key === 'ArrowRight') navLightbox(1);
+      if (e.key === 'ArrowLeft') navLightbox(-1);
+      if (e.key === 'Escape') setLightbox(null);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [lightbox]);
+
+  const navLightbox = (dir) => {
+    setLightbox(lb => {
+      if (!lb) return null;
+      const next = lb.index + dir;
+      if (next < 0 || next >= lb.list.length) return lb;
+      return { ...lb.list[next], list: lb.list, index: next };
+    });
+  };
+
+  const openLightbox = (photo, list, index) => setLightbox({ ...photo, list, index });
 
   const formatEventDate = (dateStr) =>
-    new Date(dateStr).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+    new Date(dateStr).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase();
 
   const handleDownloadClick = (photo) => {
     if (verified) {
@@ -106,7 +116,6 @@ export default function Media({ events }) {
     const data = await res.json();
     setLoading(false);
     if (data.success) {
-      // Save session for 24 hours
       const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
       localStorage.setItem('subvrs_email', email);
       localStorage.setItem('subvrs_expiry', expiry);
@@ -126,10 +135,17 @@ export default function Media({ events }) {
     setUserEmail('');
   };
 
+  const bestPhotos = events.flatMap(e =>
+    (e.featured_photos || []).map(p => ({ src: p, event: e.name, eventId: e.id, date: e.date }))
+  );
+
+  const eventsWithPhotos = events.filter(e => e.photos && e.photos.length > 0);
+
   return (
     <>
       <Head><title>Media — SUBVRS</title></Head>
 
+      {/* Header */}
       <div style={{ padding: '60px 40px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px', marginBottom: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text2)' }}>Foto & Video</div>
@@ -140,62 +156,62 @@ export default function Media({ events }) {
             </div>
           )}
         </div>
-        <h1 style={{ fontSize: 'clamp(40px, 7vw, 80px)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 0.95, marginBottom: '40px' }}>MEDIA</h1>
-
-        {/* Filter */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '48px' }}>
-          <button onClick={() => setSelected('best')} style={{ background: selected === 'best' ? 'var(--accent)' : 'transparent', border: `1px solid ${selected === 'best' ? 'var(--accent)' : 'var(--border2)'}`, color: selected === 'best' ? '#fff' : 'var(--text2)', padding: '8px 18px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s' }}>Best of</button>
-          {events.map(e => (
-            <button key={e.id} onClick={() => setSelected(e.id)} style={{ background: selected === e.id ? 'var(--accent)' : 'transparent', border: `1px solid ${selected === e.id ? 'var(--accent)' : 'var(--border2)'}`, color: selected === e.id ? '#fff' : 'var(--text2)', padding: '8px 18px 7px', borderRadius: '4px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{e.name}</span>
-              <span style={{ fontSize: '10px', fontWeight: 500, letterSpacing: '0.05em', opacity: selected === e.id ? 0.85 : 0.6 }}>{formatEventDate(e.date)}</span>
-            </button>
-          ))}
-        </div>
+        <h1 style={{ fontSize: 'clamp(40px, 7vw, 80px)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 0.95, marginBottom: '64px' }}>MEDIA</h1>
       </div>
 
-      {/* Gallery */}
-      {filteredPhotos.length > 0 ? (
-        <div style={{ padding: '0 40px 80px' }}>
+      {/* BEST OF */}
+      <section style={{ padding: '0 40px 80px' }}>
+        <SectionHeader label="Selezione" title="Best of" count={bestPhotos.length} />
+        {bestPhotos.length > 0 ? (
+          <Gallery photos={bestPhotos} onOpen={openLightbox} onDownload={handleDownloadClick} />
+        ) : (
+          <EmptyState text="Stiamo scegliendo le foto migliori — torna presto." />
+        )}
+      </section>
 
-          <div style={{ columns: '3 250px', gap: '4px' }}>
-            {filteredPhotos.map((photo, i) => (
-              <div key={i} style={{ breakInside: 'avoid', marginBottom: '4px', position: 'relative', overflow: 'hidden', borderRadius: '2px' }}
-                onMouseEnter={e => e.currentTarget.querySelector('.overlay').style.opacity = '1'}
-                onMouseLeave={e => e.currentTarget.querySelector('.overlay').style.opacity = '0'}
-              >
-                <img src={getThumbUrl(photo.src)} alt={photo.event} onClick={() => setLightbox(photo)}
-                  loading="lazy"
-                  style={{ width: '100%', display: 'block', cursor: 'zoom-in' }} />
-                <div className="overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s', gap: '12px' }}>
-                  <button onClick={() => setLightbox(photo)} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', padding: '8px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Vedi</button>
-                  <button onClick={() => handleDownloadClick(photo)} style={{ background: 'var(--accent)', border: 'none', color: '#fff', padding: '8px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Scarica</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div style={{ padding: '80px 40px', textAlign: 'center' }}>
-          <div style={{ fontSize: '40px', marginBottom: '16px' }}>📸</div>
-          <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
-            {selected === 'best' ? 'Selezione in arrivo' : 'Nessuna foto ancora'}
-          </div>
-          <div style={{ fontSize: '14px', color: 'var(--text2)' }}>
-            {selected === 'best'
-              ? 'Stiamo scegliendo le foto migliori — torna presto.'
-              : 'Le foto di questo evento appariranno qui.'}
-          </div>
-        </div>
-      )}
+      {/* SEZIONE PER OGNI EVENTO */}
+      {events.map(ev => {
+        const photos = (ev.photos || []).map(p => ({ src: p, event: ev.name, eventId: ev.id, date: ev.date }));
+        return (
+          <section key={ev.id} style={{ padding: '0 40px 80px' }}>
+            <SectionHeader label={formatEventDate(ev.date)} title={ev.name} count={photos.length} />
+            {photos.length > 0 ? (
+              <Gallery photos={photos} onOpen={openLightbox} onDownload={handleDownloadClick} />
+            ) : (
+              <EmptyState text="Le foto di questo evento appariranno qui." />
+            )}
+          </section>
+        );
+      })}
 
       {/* Lightbox */}
       {lightbox && (
-        <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.95)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', cursor: 'zoom-out' }}>
-          <img src={getFullUrl(lightbox.src)} alt={lightbox.event} style={{ maxHeight: '85vh', maxWidth: '85vw', objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
-          <div style={{ position: 'absolute', bottom: '24px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600 }}>{lightbox.event}</span>
-            <button onClick={(e) => { e.stopPropagation(); handleDownloadClick(lightbox); }} className="btn-primary" style={{ fontSize: '12px', padding: '8px 20px' }}>Scarica foto</button>
+        <div
+          onClick={() => setLightbox(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.96)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', cursor: 'zoom-out' }}
+        >
+          <img
+            src={getFullUrl(lightbox.src)}
+            alt={lightbox.event}
+            style={{ maxHeight: '85vh', maxWidth: '85vw', objectFit: 'contain' }}
+            onClick={e => e.stopPropagation()}
+          />
+
+          {lightbox.index > 0 && (
+            <button onClick={e => { e.stopPropagation(); navLightbox(-1); }}
+              style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', width: '48px', height: '48px', borderRadius: '50%', fontSize: '22px', cursor: 'pointer' }}>‹</button>
+          )}
+          {lightbox.index < lightbox.list.length - 1 && (
+            <button onClick={e => { e.stopPropagation(); navLightbox(1); }}
+              style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', width: '48px', height: '48px', borderRadius: '50%', fontSize: '22px', cursor: 'pointer' }}>›</button>
+          )}
+
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ position: 'absolute', bottom: '24px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '12px', alignItems: 'center' }}
+          >
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>{lightbox.event}</span>
+            <button onClick={() => handleDownloadClick(lightbox)} className="btn-primary" style={{ fontSize: '12px', padding: '8px 20px' }}>Scarica foto</button>
           </div>
           <button onClick={() => setLightbox(null)} style={{ position: 'absolute', top: '24px', right: '24px', background: 'none', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer' }}>✕</button>
         </div>
@@ -244,5 +260,53 @@ export default function Media({ events }) {
         </div>
       )}
     </>
+  );
+}
+
+function SectionHeader({ label, title, count }) {
+  return (
+    <div style={{ marginBottom: '24px' }}>
+      <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '6px' }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
+        <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1 }}>{title}</h2>
+        {count > 0 && <span style={{ fontSize: '13px', color: 'var(--text2)', fontWeight: 500 }}>{count} foto</span>}
+      </div>
+    </div>
+  );
+}
+
+function Gallery({ photos, onOpen, onDownload }) {
+  return (
+    <div style={{ columns: '3 250px', gap: '4px' }}>
+      {photos.map((photo, i) => (
+        <div
+          key={i}
+          style={{ breakInside: 'avoid', marginBottom: '4px', position: 'relative', overflow: 'hidden', borderRadius: '2px' }}
+          onMouseEnter={e => e.currentTarget.querySelector('.overlay').style.opacity = '1'}
+          onMouseLeave={e => e.currentTarget.querySelector('.overlay').style.opacity = '0'}
+        >
+          <img
+            src={photo.src.replace('/upload/', '/upload/w_800,q_75,f_auto/')}
+            alt={photo.event}
+            onClick={() => onOpen(photo, photos, i)}
+            loading="lazy"
+            style={{ width: '100%', display: 'block', cursor: 'zoom-in' }}
+          />
+          <div className="overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s', gap: '12px' }}>
+            <button onClick={() => onOpen(photo, photos, i)} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', padding: '8px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Vedi</button>
+            <button onClick={() => onDownload(photo)} style={{ background: 'var(--accent)', border: 'none', color: '#fff', padding: '8px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Scarica</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({ text }) {
+  return (
+    <div style={{ padding: '48px 0', textAlign: 'center', border: '1px solid var(--border)', borderRadius: '8px' }}>
+      <div style={{ fontSize: '32px', marginBottom: '12px' }}>📸</div>
+      <div style={{ fontSize: '14px', color: 'var(--text2)' }}>{text}</div>
+    </div>
   );
 }
