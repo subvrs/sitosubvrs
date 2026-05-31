@@ -16,9 +16,10 @@ const getFullUrl = (url) => {
 export async function getServerSideProps() {
   const { data: events } = await supabase
     .from('events')
-    .select('id, name, date, photos, featured_photos')
+    .select('id, name, date, photos, featured_photos, photos_public')
     .order('date', { ascending: false });
-  return { props: { events: events || [] } };
+  const visible = (events || []).filter(e => e.photos_public !== false);
+  return { props: { events: visible } };
 }
 
 export default function Media({ events }) {
@@ -44,9 +45,8 @@ export default function Media({ events }) {
     }
   }, []);
 
-  const eventsWithPhotos = events.filter(e => e.photos && e.photos.length > 0);
-  const allPhotos = eventsWithPhotos.flatMap(e =>
-    e.photos.map(p => ({ src: p, event: e.name, eventId: e.id, date: e.date }))
+  const allPhotos = events.flatMap(e =>
+    (e.photos || []).map(p => ({ src: p, event: e.name, eventId: e.id, date: e.date }))
   );
   const bestPhotos = events.flatMap(e =>
     (e.featured_photos || []).map(p => ({ src: p, event: e.name, eventId: e.id, date: e.date }))
@@ -145,7 +145,7 @@ export default function Media({ events }) {
         {/* Filter */}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '48px' }}>
           <button onClick={() => setSelected('best')} style={{ background: selected === 'best' ? 'var(--accent)' : 'transparent', border: `1px solid ${selected === 'best' ? 'var(--accent)' : 'var(--border2)'}`, color: selected === 'best' ? '#fff' : 'var(--text2)', padding: '8px 18px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s' }}>Best of</button>
-          {eventsWithPhotos.map(e => (
+          {events.map(e => (
             <button key={e.id} onClick={() => setSelected(e.id)} style={{ background: selected === e.id ? 'var(--accent)' : 'transparent', border: `1px solid ${selected === e.id ? 'var(--accent)' : 'var(--border2)'}`, color: selected === e.id ? '#fff' : 'var(--text2)', padding: '8px 18px 7px', borderRadius: '4px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1px' }}>
               <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{e.name}</span>
               <span style={{ fontSize: '10px', fontWeight: 500, letterSpacing: '0.05em', opacity: selected === e.id ? 0.85 : 0.6 }}>{formatEventDate(e.date)}</span>

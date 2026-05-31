@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 const ADMIN_PASSWORD = 'subvrsadmin2026';
+const CLOUD_NAME = 'dvjxx6syx';
+const UPLOAD_PRESET = 'subvrs_events';
 const GENRE_OPTIONS = ['House', 'Disco', 'Disco House', 'Techno House', 'Afro House', 'Deep House', 'Tech House', 'Funk'];
 const EMPTY_ARTIST = { name: '', role: 'DJ Set', time: '', bio: '', instagram: '', photo: '' };
 
@@ -13,6 +15,7 @@ const EMPTY_EVENT = {
   dress_code: 'Smart casual', age_limit: '18+', ticket_link: '', status: 'upcoming', flyer: '',
   lineup: [{ ...EMPTY_ARTIST }],
   featured_photos: [],
+  photos_public: true,
 };
 
 export default function Admin() {
@@ -25,6 +28,13 @@ export default function Admin() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [photoLightbox, setPhotoLightbox] = useState(null);
+  const [uploadFiles, setUploadFiles] = useState([]);
+  const [uploadPreviews, setUploadPreviews] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadDrag, setUploadDrag] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState(null);
 
   useEffect(() => {
     if (auth) loadEvents();
@@ -64,6 +74,55 @@ export default function Admin() {
     };
   });
 
+  const handleUploadFiles = (fileList) => {
+    const arr = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+    setUploadFiles(arr);
+    setUploadPreviews(arr.map(f => URL.createObjectURL(f)));
+  };
+
+  const handleUpload = async () => {
+    if (!uploadFiles.length || !form.id) return;
+    setUploading(true);
+    setUploadProgress(0);
+    setUploadMsg(null);
+    const uploaded = [];
+    for (let i = 0; i < uploadFiles.length; i++) {
+      const fd = new FormData();
+      fd.append('file', uploadFiles[i]);
+      fd.append('upload_preset', UPLOAD_PRESET);
+      fd.append('folder', `subvrs/${form.id}`);
+      try {
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.secure_url) uploaded.push(data.secure_url);
+      } catch (err) { console.error(err); }
+      setUploadProgress(Math.round(((i + 1) / uploadFiles.length) * 100));
+    }
+    const newPhotos = [...(form.photos || []), ...uploaded];
+    await supabase.from('events').update({ photos: newPhotos }).eq('id', form.id);
+    setForm(f => ({ ...f, photos: newPhotos }));
+    setUploadFiles([]);
+    setUploadPreviews([]);
+    setUploading(false);
+    setUploadMsg({ type: 'success', text: `${uploaded.length} foto caricate!` });
+    setTimeout(() => setUploadMsg(null), 3000);
+  };
+
+  const handleDeletePhoto = async (photoUrl) => {
+    if (!confirm('Eliminare questa foto?')) return;
+    await fetch('/api/delete-photo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ photo_url: photoUrl, event_id: form.id }),
+    });
+    setForm(f => ({
+      ...f,
+      photos: (f.photos || []).filter(p => p !== photoUrl),
+      featured_photos: (f.featured_photos || []).filter(p => p !== photoUrl),
+    }));
+    if (photoLightbox !== null) setPhotoLightbox(null);
+  };
+
   const generateId = (name, date) => {
     const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     return `${slug}-${date.slice(0, 7)}`;
@@ -96,7 +155,16 @@ export default function Admin() {
   };
 
   const handleEdit = (event) => {
-    setForm({ ...event, lineup: event.lineup || [{ ...EMPTY_ARTIST }], featured_photos: event.featured_photos || [] });
+    setForm({
+      ...event,
+      lineup: event.lineup || [{ ...EMPTY_ARTIST }],
+      featured_photos: event.featured_photos || [],
+      photos_public: event.photos_public !== false,
+    });
+    setPhotoLightbox(null);
+    setUploadFiles([]);
+    setUploadPreviews([]);
+    setUploadMsg(null);
     setView('edit');
     setMsg(null);
   };
@@ -111,6 +179,10 @@ export default function Admin() {
 
   const handleNew = () => {
     setForm({ ...EMPTY_EVENT, lineup: [{ ...EMPTY_ARTIST }] });
+    setPhotoLightbox(null);
+    setUploadFiles([]);
+    setUploadPreviews([]);
+    setUploadMsg(null);
     setView('create');
     setMsg(null);
   };
@@ -183,8 +255,11 @@ export default function Admin() {
                     <span style={{ fontWeight: 800, fontSize: '16px' }}>{ev.name}</span>
                     <span className={`tag ${ev.status === 'past' ? 'past' : ''}`}>{ev.status === 'past' ? 'Passato' : 'Upcoming'}</span>
                   </div>
-                  <div style={{ fontSize: '13px', color: 'var(--text2)' }}>
-                    {new Date(ev.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })} — {ev.venue}
+                  <div style={{ fontSize: '13px', color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span>{new Date(ev.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })} — {ev.venue}</span>
+                    {ev.photos && ev.photos.length > 0 && ev.photos_public === false && (
+                      <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text2)', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: '3px', padding: '2px 6px' }}>🔒 Foto private</span>
+                    )}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -300,36 +375,210 @@ export default function Admin() {
               <button type="button" onClick={addArtist} className="btn-outline" style={{ fontSize: '12px', padding: '8px 18px' }}>+ Aggiungi artista</button>
             </div>
 
-            {/* FOTO IN EVIDENZA */}
+            {/* UPLOAD FOTO */}
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                Upload foto
+                <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+              </div>
+
+              {view === 'create' ? (
+                <div style={{ padding: '20px', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text2)', fontSize: '13px', lineHeight: 1.6 }}>
+                  Salva prima l&apos;evento — l&apos;upload foto sarà disponibile nella schermata di modifica.
+                </div>
+              ) : (
+                <>
+                  {uploadMsg && (
+                    <div style={{ padding: '10px 16px', borderRadius: '6px', marginBottom: '16px', fontSize: '13px', fontWeight: 600,
+                      background: uploadMsg.type === 'success' ? 'rgba(0,200,100,0.1)' : 'rgba(232,71,26,0.1)',
+                      border: `1px solid ${uploadMsg.type === 'success' ? 'rgba(0,200,100,0.3)' : 'rgba(232,71,26,0.3)'}`,
+                      color: uploadMsg.type === 'success' ? '#00c864' : 'var(--accent)',
+                    }}>{uploadMsg.text}</div>
+                  )}
+
+                  <div
+                    onDragOver={e => { e.preventDefault(); setUploadDrag(true); }}
+                    onDragLeave={() => setUploadDrag(false)}
+                    onDrop={e => { e.preventDefault(); setUploadDrag(false); handleUploadFiles(e.dataTransfer.files); }}
+                    onClick={() => document.getElementById('admin-file-input').click()}
+                    style={{
+                      border: `2px dashed ${uploadDrag ? 'var(--accent)' : 'var(--border2)'}`,
+                      borderRadius: '8px', padding: '32px', textAlign: 'center', cursor: 'pointer',
+                      background: uploadDrag ? 'rgba(232,71,26,0.04)' : 'var(--bg2)', transition: 'all 0.2s',
+                      marginBottom: '16px',
+                    }}
+                  >
+                    <div style={{ fontSize: '24px', marginBottom: '6px' }}>📷</div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '2px' }}>Trascina le foto qui</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text2)' }}>oppure clicca per selezionare</div>
+                    <input id="admin-file-input" type="file" multiple accept="image/*" style={{ display: 'none' }}
+                      onChange={e => handleUploadFiles(e.target.files)} />
+                  </div>
+
+                  {uploadPreviews.length > 0 && (
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--text2)', marginBottom: '8px' }}>{uploadPreviews.length} foto selezionate</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '4px' }}>
+                        {uploadPreviews.map((src, i) => (
+                          <div key={i} style={{ aspectRatio: '1', borderRadius: '4px', overflow: 'hidden' }}>
+                            <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {uploading && (
+                    <div style={{ marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text2)', marginBottom: '6px' }}>
+                        <span>Caricamento...</span><span>{uploadProgress}%</span>
+                      </div>
+                      <div style={{ background: 'var(--bg3)', borderRadius: '4px', height: '4px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', background: 'var(--accent)', width: `${uploadProgress}%`, transition: 'width 0.3s' }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {uploadFiles.length > 0 && (
+                    <button type="button" className="btn-primary" onClick={handleUpload} disabled={uploading}
+                      style={{ width: '100%', opacity: uploading ? 0.7 : 1 }}>
+                      {uploading ? `Caricamento... ${uploadProgress}%` : `Carica ${uploadFiles.length} foto`}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* VISIBILITÀ FOTO */}
+            {form.photos && form.photos.length > 0 && (
+              <Field label="Visibilità foto nella pagina Media">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => updateField('photos_public', !form.photos_public)}
+                    style={{
+                      width: '48px', height: '26px', borderRadius: '13px', border: 'none', cursor: 'pointer',
+                      background: form.photos_public !== false ? 'var(--accent)' : 'var(--border2)',
+                      position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                    }}
+                  >
+                    <span style={{
+                      position: 'absolute', top: '3px',
+                      left: form.photos_public !== false ? '25px' : '3px',
+                      width: '20px', height: '20px', borderRadius: '50%', background: '#fff',
+                      transition: 'left 0.2s',
+                    }} />
+                  </button>
+                  <span style={{ fontSize: '13px', color: form.photos_public !== false ? 'var(--text)' : 'var(--text2)', fontWeight: 600 }}>
+                    {form.photos_public !== false ? 'Pubbliche — visibili nella pagina Media' : 'Private — nascoste dalla pagina Media'}
+                  </span>
+                </div>
+              </Field>
+            )}
+
+            {/* FOTO EVENTO — viewer + Best of */}
             {form.photos && form.photos.length > 0 && (
               <div>
                 <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  Foto in evidenza — &ldquo;Best of&rdquo;
+                  Foto evento
                   <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
                   <span style={{ fontSize: '11px', color: 'var(--text2)', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'none' }}>
-                    {(form.featured_photos || []).length} selezionate
+                    {form.photos.length} foto · {(form.featured_photos || []).length} in evidenza
                   </span>
                 </div>
                 <p style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '16px', lineHeight: 1.5 }}>
-                  Clicca sulle foto per aggiungerle o rimuoverle dalla sezione &ldquo;Best of&rdquo; nella pagina Media.
+                  Clicca su una foto per visualizzarla o scaricarla. Usa ★ per aggiungerla/rimuoverla dal &ldquo;Best of&rdquo;.
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '6px' }}>
                   {form.photos.map((photoUrl, i) => {
                     const isFeatured = (form.featured_photos || []).includes(photoUrl);
                     return (
-                      <div key={i} onClick={() => toggleFeatured(photoUrl)} style={{
-                        position: 'relative', cursor: 'pointer', borderRadius: '4px', overflow: 'hidden',
-                        border: `2px solid ${isFeatured ? 'var(--accent)' : 'transparent'}`,
-                        transition: 'border-color 0.15s',
-                      }}>
-                        <img src={photoUrl} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block', opacity: isFeatured ? 1 : 0.55, transition: 'opacity 0.15s' }} />
-                        {isFeatured && (
-                          <div style={{ position: 'absolute', top: '4px', right: '4px', background: 'var(--accent)', borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#fff', fontWeight: 900 }}>★</div>
-                        )}
+                      <div key={i} style={{ position: 'relative', borderRadius: '4px', overflow: 'hidden', border: `2px solid ${isFeatured ? 'var(--accent)' : 'transparent'}`, transition: 'border-color 0.15s' }}>
+                        <img
+                          src={photoUrl}
+                          alt=""
+                          onClick={() => setPhotoLightbox(i)}
+                          style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block', cursor: 'zoom-in', opacity: isFeatured ? 1 : 0.6, transition: 'opacity 0.15s' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => toggleFeatured(photoUrl)}
+                          title={isFeatured ? 'Rimuovi dal Best of' : 'Aggiungi al Best of'}
+                          style={{
+                            position: 'absolute', top: '4px', right: '4px',
+                            background: isFeatured ? 'var(--accent)' : 'rgba(0,0,0,0.6)',
+                            border: 'none', borderRadius: '50%', width: '22px', height: '22px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '10px', color: '#fff', fontWeight: 900, cursor: 'pointer',
+                          }}>★</button>
                       </div>
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {/* PHOTO LIGHTBOX (admin) */}
+            {photoLightbox !== null && form.photos && form.photos[photoLightbox] && (
+              <div
+                onClick={() => setPhotoLightbox(null)}
+                style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.96)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}
+              >
+                <img
+                  src={form.photos[photoLightbox]}
+                  alt=""
+                  onClick={e => e.stopPropagation()}
+                  style={{ maxHeight: '80vh', maxWidth: '80vw', objectFit: 'contain', borderRadius: '4px' }}
+                />
+
+                {/* Prev / Next */}
+                {photoLightbox > 0 && (
+                  <button
+                    onClick={e => { e.stopPropagation(); setPhotoLightbox(prev => prev - 1); }}
+                    style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', width: '44px', height: '44px', borderRadius: '50%', fontSize: '20px', cursor: 'pointer' }}>‹</button>
+                )}
+                {photoLightbox < form.photos.length - 1 && (
+                  <button
+                    onClick={e => { e.stopPropagation(); setPhotoLightbox(prev => prev + 1); }}
+                    style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', width: '44px', height: '44px', borderRadius: '50%', fontSize: '20px', cursor: 'pointer' }}>›</button>
+                )}
+
+                {/* Bottom bar */}
+                <div
+                  onClick={e => e.stopPropagation()}
+                  style={{ position: 'absolute', bottom: '24px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '10px', alignItems: 'center' }}
+                >
+                  <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
+                    {photoLightbox + 1} / {form.photos.length}
+                  </span>
+                  <a
+                    href={form.photos[photoLightbox]}
+                    download
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    style={{ background: 'var(--accent)', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', letterSpacing: '0.05em' }}
+                  >Scarica</a>
+                  <button
+                    type="button"
+                    onClick={() => toggleFeatured(form.photos[photoLightbox])}
+                    style={{
+                      background: (form.featured_photos || []).includes(form.photos[photoLightbox]) ? 'var(--accent)' : 'rgba(255,255,255,0.1)',
+                      border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '9px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                    }}>
+                    {(form.featured_photos || []).includes(form.photos[photoLightbox]) ? '★ In evidenza' : '☆ Best of'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); handleDeletePhoto(form.photos[photoLightbox]); }}
+                    style={{ background: 'rgba(232,71,26,0.2)', border: '1px solid rgba(232,71,26,0.4)', color: 'var(--accent)', padding: '9px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                    Elimina
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => setPhotoLightbox(null)}
+                  style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer' }}>✕</button>
               </div>
             )}
 

@@ -81,8 +81,12 @@ export default function Upload() {
 
   const handleDelete = async (photoUrl) => {
     if (!confirm('Eliminare questa foto?')) return;
+    await fetch('/api/delete-photo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ photo_url: photoUrl, event_id: selectedEvent }),
+    });
     const newPhotos = existingPhotos.filter(p => p !== photoUrl);
-    await supabase.from('events').update({ photos: newPhotos }).eq('id', selectedEvent);
     setExistingPhotos(newPhotos);
     setMsg({ type: 'success', text: 'Foto eliminata.' });
     setTimeout(() => setMsg(null), 2000);
@@ -90,7 +94,13 @@ export default function Upload() {
 
   const handleDeleteAll = async () => {
     if (!confirm('Eliminare TUTTE le foto di questo evento?')) return;
-    await supabase.from('events').update({ photos: [] }).eq('id', selectedEvent);
+    for (const photoUrl of existingPhotos) {
+      await fetch('/api/delete-photo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photo_url: photoUrl, event_id: selectedEvent }),
+      });
+    }
     setExistingPhotos([]);
     setMsg({ type: 'success', text: 'Tutte le foto eliminate.' });
     setTimeout(() => setMsg(null), 2000);
