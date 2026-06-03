@@ -485,6 +485,24 @@ export default function Admin() {
                   <span style={{ fontSize: '11px', color: 'var(--text2)', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'none' }}>
                     {form.photos.length} foto · {(form.featured_photos || []).length} in evidenza
                   </span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!confirm(`Eliminare tutte le ${form.photos.length} foto di questo evento? L'operazione è irreversibile.`)) return;
+                      for (const photoUrl of form.photos) {
+                        await fetch('/api/delete-photo', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ photo_url: photoUrl, event_id: form.id }),
+                        });
+                      }
+                      setForm(f => ({ ...f, photos: [], featured_photos: [] }));
+                      setPhotoLightbox(null);
+                    }}
+                    style={{ background: 'none', border: '1px solid rgba(232,71,26,0.35)', color: 'var(--accent)', padding: '4px 12px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  >
+                    Elimina tutte
+                  </button>
                 </div>
                 <p style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '16px', lineHeight: 1.5 }}>
                   Clicca su una foto per visualizzarla o scaricarla. Usa ★ per aggiungerla/rimuoverla dal &ldquo;Best of&rdquo;.
