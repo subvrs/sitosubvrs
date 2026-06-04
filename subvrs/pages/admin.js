@@ -541,6 +541,24 @@ export default function Admin() {
                     <span style={{ fontSize: '12px', color: 'var(--text2)' }}>
                       {selectedPhotos.size > 0 ? `${selectedPhotos.size} selezionate` : 'Nessuna selezionata'}
                     </span>
+                    {selectedPhotos.size > 0 && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!confirm(`Rimuovere ${selectedPhotos.size} foto dal sito? Le immagini resteranno su Cloudinary.`)) return;
+                          const toRemove = new Set(selectedPhotos);
+                          const newPhotos = (form.photos || []).filter(p => !toRemove.has(p));
+                          const newFeatured = (form.featured_photos || []).filter(p => !toRemove.has(p));
+                          await supabase.from('events').update({ photos: newPhotos, featured_photos: newFeatured }).eq('id', form.id);
+                          setForm(f => ({ ...f, photos: newPhotos, featured_photos: newFeatured }));
+                          setSelectedPhotos(new Set());
+                          setPhotoLightbox(null);
+                        }}
+                        style={{ fontSize: '11px', padding: '5px 14px', background: 'none', border: '1px solid rgba(232,71,26,0.4)', color: 'var(--accent)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'Poppins', fontWeight: 700 }}
+                      >
+                        Rimuovi dal sito
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -665,6 +683,21 @@ export default function Admin() {
                       border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '9px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
                     }}>
                     {(form.featured_photos || []).includes(form.photos[photoLightbox]) ? '★ In evidenza' : '☆ Best of'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async e => {
+                      e.stopPropagation();
+                      const photoUrl = form.photos[photoLightbox];
+                      if (!confirm('Rimuovere questa foto dal sito? Resterà su Cloudinary.')) return;
+                      const newPhotos = (form.photos || []).filter(p => p !== photoUrl);
+                      const newFeatured = (form.featured_photos || []).filter(p => p !== photoUrl);
+                      await supabase.from('events').update({ photos: newPhotos, featured_photos: newFeatured }).eq('id', form.id);
+                      setForm(f => ({ ...f, photos: newPhotos, featured_photos: newFeatured }));
+                      setPhotoLightbox(null);
+                    }}
+                    style={{ background: 'none', border: '1px solid rgba(232,71,26,0.5)', color: 'var(--accent)', padding: '9px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                    Rimuovi dal sito
                   </button>
                 </div>
 
