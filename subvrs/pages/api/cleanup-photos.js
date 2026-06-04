@@ -1,43 +1,18 @@
-import crypto from 'crypto';
 import { supabase } from '../../lib/supabase';
 
 const CLOUD_NAME = 'dvjxx6syx';
 
-async function getCloudinaryPublicIds(apiKey, apiSecret) {
-  const allIds = new Set();
-  let nextCursor = undefined;
+async function fetchCloudinaryPage(apiKey, apiSecret, prefix, nextCursor) {
+  const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
+  const url = new URL(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/resources/image`);
+  url.searchParams.set('prefix', prefix);
+  url.searchParams.set('max_results', '500');
+  if (nextCursor) url.searchParams.set('next_cursor', nextCursor);
 
-  do {
-    const timestamp = Math.floor(Date.now() / 1000);
-
-    // Solo i parametri che entrano nella firma
-    const toSign = { max_results: 500, prefix: 'subvrs/', timestamp };
-    if (nextCursor) toSign.next_cursor = nextCursor;
-
-    const sigStr = Object.keys(toSign).sort().map(k => `${k}=${toSign[k]}`).join('&') + apiSecret;
-    const signature = crypto.createHash('sha1').update(sigStr).digest('hex');
-
-    const url = new URL(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/resources/image`);
-    url.searchParams.set('prefix', 'subvrs/');
-    url.searchParams.set('max_results', '500');
-    url.searchParams.set('timestamp', String(timestamp));
-    url.searchParams.set('api_key', apiKey);
-    url.searchParams.set('signature', signature);
-    if (nextCursor) url.searchParams.set('next_cursor', nextCursor);
-
-    const res = await fetch(url.toString());
-    const data = await res.json();
-
-    if (data.error) {
-      console.error('Cloudinary error:', data.error);
-      return null; // segnala errore
-    }
-
-    (data.resources || []).forEach(r => allIds.add(r.public_id));
-    nextCursor = data.next_cursor;
-  } while (nextCursor);
-
-  return allIds;
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Basic ${auth}` },
+  });
+  return res.json();
 }
 
 export default async function handler(req, res) {
@@ -52,31 +27,38 @@ export default async function handler(req, res) {
 
   if (error) return res.status(500).json({ error: error.message });
 
-  // Prova a ottenere gli ID da Cloudinary
+  // Ottieni tutti i public_id da Cloudinary
   let cloudinaryIds = null;
   if (apiKey && apiSecret) {
-    cloudinaryIds = await getCloudinaryPublicIds(apiKey, apiSecret);
-    // Se ritorna null (errore API) o Set vuoto con foto nel DB → non procedere
-    if (cloudinaryIds !== null && cloudinaryIds.size === 0) {
-      const totalPhotos = (events || []).reduce((n, e) => n + (e.photos || []).length, 0);
-      if (totalPhotos > 0) {
-        return res.status(500).json({
-          error: 'Cloudinary ha restituito 0 risorse ma il DB ne ha. Firma API errata o credenziali sbagliate. Pulizia annullata per sicurezza.',
-        });
+    const allIds = new Set();
+    let cursor = undefined;
+
+    do {
+      const data = await fetchCloudinaryPage(apiKey, apiSecret, 'subvrs/', cursor);
+      if (data.error) {
+        return res.status(500).json({ error: `Cloudinary: ${data.error.message}` });
       }
+      (data.resources || []).forEach(r => allIds.add(r.public_id));
+      cursor = data.next_cursor;
+    } while (cursor);
+
+    // Sicurezza: se Cloudinary torna 0 ma il DB ha foto → annulla
+    const totalDbPhotos = (events || []).reduce((n, e) => n + (e.photos || []).length, 0);
+    if (allIds.size === 0 && totalDbPhotos > 0) {
+      return res.status(500).json({
+        error: 'Cloudinary ha restituito 0 risorse ma il DB ne ha. Pulizia annullata per sicurezza.',
+      });
     }
-    if (cloudinaryIds === null) {
-      return res.status(500).json({ error: 'Errore di connessione a Cloudinary. Pulizia annullata.' });
-    }
+
+    cloudinaryIds = allIds;
   }
 
   const getPublicId = (url) => {
-    const match = url.match(/cloudinary\.com\/[^/]+\/image\/upload\/(?:[^/]+\/)*(.+)\.[a-z0-9]+$/i);
+    const match = url.match(/cloudinary\.com\/[^/]+\/image\/upload\/(.+)\.[a-z0-9]+$/i);
     return match ? match[1] : null;
   };
 
   const orphanedUrls = new Set();
-
   for (const ev of events || []) {
     const seen = new Set();
     for (const url of ev.photos || []) {
