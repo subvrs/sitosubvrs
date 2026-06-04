@@ -36,6 +36,7 @@ export default function Admin() {
   const [uploadDrag, setUploadDrag] = useState(false);
   const [uploadMsg, setUploadMsg] = useState(null);
   const [cleaning, setCleaning] = useState(false);
+  const [recovering, setRecovering] = useState(false);
 
   useEffect(() => {
     if (auth) loadEvents();
@@ -237,6 +238,26 @@ export default function Admin() {
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button
                 onClick={async () => {
+                  if (!confirm('Recupera foto da Cloudinary? Verranno reintegrate nel DB tutte le foto presenti su Cloudinary ma mancanti nel DB.')) return;
+                  setRecovering(true);
+                  const res = await fetch('/api/recover-photos', { method: 'POST' });
+                  const data = await res.json();
+                  setRecovering(false);
+                  await loadEvents();
+                  if (data.success) {
+                    setMsg({ type: 'success', text: `Recupero completato: ${data.restored_photos} foto reintegrate in ${data.restored_events} eventi.` });
+                  } else {
+                    setMsg({ type: 'error', text: data.message || 'Errore durante il recupero.' });
+                  }
+                }}
+                disabled={recovering}
+                className="btn-outline"
+                style={{ fontSize: '12px', padding: '10px 16px', opacity: recovering ? 0.6 : 1 }}
+              >
+                {recovering ? 'Recupero...' : '♻️ Recupera foto'}
+              </button>
+              <button
+                onClick={async () => {
                   if (!confirm('Avvia pulizia DB? Verranno rimossi tutti i riferimenti a foto non più presenti su Cloudinary.')) return;
                   setCleaning(true);
                   const res = await fetch('/api/cleanup-photos', { method: 'POST' });
@@ -246,7 +267,7 @@ export default function Admin() {
                   if (data.success) {
                     setMsg({ type: 'success', text: `Pulizia completata: ${data.orphaned_removed} foto orfane rimosse da ${data.events_cleaned} eventi.` });
                   } else {
-                    setMsg({ type: 'error', text: 'Errore durante la pulizia.' });
+                    setMsg({ type: 'error', text: data.error || 'Errore durante la pulizia.' });
                   }
                 }}
                 disabled={cleaning}
