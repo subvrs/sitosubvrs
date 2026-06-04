@@ -45,8 +45,6 @@ export default function Admin() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadDrag, setUploadDrag] = useState(false);
   const [uploadMsg, setUploadMsg] = useState(null);
-  const [cleaning, setCleaning] = useState(false);
-  const [recovering, setRecovering] = useState(false);
 
   useEffect(() => {
     if (auth) loadEvents();
@@ -248,49 +246,7 @@ export default function Admin() {
             </h1>
           </div>
           {view === 'list' ? (
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <button
-                onClick={async () => {
-                  if (!confirm('Recupera foto da Cloudinary? Verranno reintegrate nel DB tutte le foto presenti su Cloudinary ma mancanti nel DB.')) return;
-                  setRecovering(true);
-                  const res = await fetch('/api/recover-photos', { method: 'POST' });
-                  const data = await res.json();
-                  setRecovering(false);
-                  await loadEvents();
-                  if (data.success) {
-                    setMsg({ type: 'success', text: `Recupero completato: ${data.restored_photos} foto reintegrate in ${data.restored_events} eventi.` });
-                  } else {
-                    setMsg({ type: 'error', text: data.message || 'Errore durante il recupero.' });
-                  }
-                }}
-                disabled={recovering}
-                className="btn-outline"
-                style={{ fontSize: '12px', padding: '10px 16px', opacity: recovering ? 0.6 : 1 }}
-              >
-                {recovering ? 'Recupero...' : '♻️ Recupera foto'}
-              </button>
-              <button
-                onClick={async () => {
-                  if (!confirm('Avvia pulizia DB? Verranno rimossi tutti i riferimenti a foto non più presenti su Cloudinary.')) return;
-                  setCleaning(true);
-                  const res = await fetch('/api/cleanup-photos', { method: 'POST' });
-                  const data = await res.json();
-                  setCleaning(false);
-                  await loadEvents();
-                  if (data.success) {
-                    setMsg({ type: 'success', text: `Pulizia completata: ${data.orphaned_removed} foto orfane rimosse da ${data.events_cleaned} eventi.` });
-                  } else {
-                    setMsg({ type: 'error', text: data.error || 'Errore durante la pulizia.' });
-                  }
-                }}
-                disabled={cleaning}
-                className="btn-outline"
-                style={{ fontSize: '12px', padding: '10px 16px', opacity: cleaning ? 0.6 : 1 }}
-              >
-                {cleaning ? 'Pulizia...' : '🧹 Pulisci DB'}
-              </button>
-              <button onClick={handleNew} className="btn-primary">+ Nuovo evento</button>
-            </div>
+            <button onClick={handleNew} className="btn-primary">+ Nuovo evento</button>
           ) : (
             <button onClick={() => setView('list')} className="btn-outline">← Torna alla lista</button>
           )}
@@ -569,7 +525,7 @@ export default function Admin() {
                   </button>
                 </div>
 
-                {/* Barra azioni selezione — solo in modalità selezione */}
+                {/* Barra selezione — solo in modalità selezione */}
                 {selectionMode && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', flexWrap: 'wrap', padding: '10px 14px', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: '6px' }}>
                     <button
@@ -582,55 +538,9 @@ export default function Admin() {
                     >
                       {selectedPhotos.size === form.photos.length ? 'Deseleziona tutte' : 'Seleziona tutte'}
                     </button>
-
-                    <span style={{ fontSize: '12px', color: 'var(--text2)', marginRight: '4px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text2)' }}>
                       {selectedPhotos.size > 0 ? `${selectedPhotos.size} selezionate` : 'Nessuna selezionata'}
                     </span>
-
-                    {selectedPhotos.size > 0 && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!confirm(`Rimuovere ${selectedPhotos.size} foto dal sito? Le immagini resteranno su Cloudinary.`)) return;
-                            const toRemove = new Set(selectedPhotos);
-                            const newPhotos = (form.photos || []).filter(p => !toRemove.has(p));
-                            const newFeatured = (form.featured_photos || []).filter(p => !toRemove.has(p));
-                            await supabase.from('events').update({ photos: newPhotos, featured_photos: newFeatured }).eq('id', form.id);
-                            setForm(f => ({ ...f, photos: newPhotos, featured_photos: newFeatured }));
-                            setSelectedPhotos(new Set());
-                            setPhotoLightbox(null);
-                          }}
-                          style={{ fontSize: '11px', padding: '5px 12px', background: 'none', border: '1px solid var(--border2)', color: 'var(--text2)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'Poppins', fontWeight: 700 }}
-                        >
-                          Rimuovi dal sito
-                        </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!confirm(`Eliminare definitivamente ${selectedPhotos.size} foto da Cloudinary e dal database? Operazione irreversibile.`)) return;
-                            for (const photoUrl of selectedPhotos) {
-                              await fetch('/api/delete-photo', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ photo_url: photoUrl, event_id: form.id }),
-                              });
-                            }
-                            const toRemove = new Set(selectedPhotos);
-                            setForm(f => ({
-                              ...f,
-                              photos: (f.photos || []).filter(p => !toRemove.has(p)),
-                              featured_photos: (f.featured_photos || []).filter(p => !toRemove.has(p)),
-                            }));
-                            setSelectedPhotos(new Set());
-                            setPhotoLightbox(null);
-                          }}
-                          style={{ fontSize: '11px', padding: '5px 12px', background: 'none', border: '1px solid rgba(232,71,26,0.4)', color: 'var(--accent)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'Poppins', fontWeight: 700 }}
-                        >
-                          Elimina definitivamente
-                        </button>
-                      </>
-                    )}
                   </div>
                 )}
 
@@ -755,12 +665,6 @@ export default function Admin() {
                       border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '9px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
                     }}>
                     {(form.featured_photos || []).includes(form.photos[photoLightbox]) ? '★ In evidenza' : '☆ Best of'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={e => { e.stopPropagation(); handleDeletePhoto(form.photos[photoLightbox]); }}
-                    style={{ background: 'rgba(232,71,26,0.2)', border: '1px solid rgba(232,71,26,0.4)', color: 'var(--accent)', padding: '9px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
-                    Elimina
                   </button>
                 </div>
 
