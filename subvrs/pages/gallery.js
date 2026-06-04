@@ -2,6 +2,13 @@ import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
+const getCloudinaryTs = (url) => {
+  const m = url.match(/\/upload\/v(\d+)\//);
+  return m ? parseInt(m[1]) : 0;
+};
+const sortByUpload = (photos) =>
+  [...(photos || [])].sort((a, b) => getCloudinaryTs(b) - getCloudinaryTs(a));
+
 const getThumbUrl = (url) => {
   if (!url || !url.includes('cloudinary.com')) return url;
   return url.replace('/upload/', '/upload/w_800,q_75,f_auto/');
@@ -135,7 +142,7 @@ export default function Media({ events }) {
   };
 
   const bestPhotos = events.flatMap(e =>
-    (e.featured_photos || []).map(p => ({ src: p, event: e.name, eventId: e.id, date: e.date }))
+    sortByUpload(e.featured_photos || []).map(p => ({ src: p, event: e.name, eventId: e.id, date: e.date }))
   );
 
   const eventsWithPhotos = events.filter(e => e.photos && e.photos.length > 0);
@@ -188,7 +195,7 @@ export default function Media({ events }) {
 
       {/* SEZIONE PER OGNI EVENTO */}
       {events.map(ev => {
-        const photos = (ev.photos || []).map(p => ({ src: p, event: ev.name, eventId: ev.id, date: ev.date }));
+        const photos = sortByUpload(ev.photos || []).map(p => ({ src: p, event: ev.name, eventId: ev.id, date: ev.date }));
         return (
           <section key={ev.id} id={`evento-${ev.id}`} style={{ padding: '0 40px 80px', scrollMarginTop: '80px' }}>
             <SectionHeader label={formatEventDate(ev.date)} title={ev.name} count={photos.length} />

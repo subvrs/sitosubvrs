@@ -4,6 +4,14 @@ import { supabase } from '../lib/supabase';
 
 const ADMIN_PASSWORD = 'subvrsadmin2026';
 const CLOUD_NAME = 'dvjxx6syx';
+
+// Estrae il timestamp di upload dall'URL Cloudinary (es. /upload/v1686000000/...)
+const getCloudinaryTs = (url) => {
+  const m = url.match(/\/upload\/v(\d+)\//);
+  return m ? parseInt(m[1]) : 0;
+};
+const sortByUpload = (photos) =>
+  [...(photos || [])].sort((a, b) => getCloudinaryTs(b) - getCloudinaryTs(a));
 const UPLOAD_PRESET = 'subvrs_events';
 const GENRE_OPTIONS = ['House', 'Disco', 'Disco House', 'Techno House', 'Afro House', 'Deep House', 'Tech House', 'Funk'];
 const EMPTY_ARTIST = { name: '', role: 'DJ Set', time: '', bio: '', instagram: '', photo: '' };
@@ -30,6 +38,7 @@ export default function Admin() {
   const [deleting, setDeleting] = useState(null);
   const [photoLightbox, setPhotoLightbox] = useState(null);
   const [selectedPhotos, setSelectedPhotos] = useState(new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
   const [uploadFiles, setUploadFiles] = useState([]);
   const [uploadPreviews, setUploadPreviews] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -179,6 +188,7 @@ export default function Admin() {
     });
     setPhotoLightbox(null);
     setSelectedPhotos(new Set());
+    setSelectionMode(false);
     setUploadFiles([]);
     setUploadPreviews([]);
     setUploadMsg(null);
@@ -537,7 +547,9 @@ export default function Admin() {
             )}
 
             {/* FOTO EVENTO — selezione, viewer, Best of */}
-            {form.photos && form.photos.length > 0 && (
+            {form.photos && form.photos.length > 0 && (() => {
+              const sortedPhotos = sortByUpload(form.photos);
+              return (
               <div>
                 {/* Header */}
                 <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -546,142 +558,153 @@ export default function Admin() {
                   <span style={{ fontSize: '11px', color: 'var(--text2)', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'none' }}>
                     {form.photos.length} foto · {(form.featured_photos || []).length} in evidenza
                   </span>
-                </div>
-
-                {/* Barra selezione */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                  {/* Bottone Seleziona / Annulla */}
                   <button
                     type="button"
-                    onClick={() => {
-                      if (selectedPhotos.size === form.photos.length) {
-                        setSelectedPhotos(new Set());
-                      } else {
-                        setSelectedPhotos(new Set(form.photos));
-                      }
-                    }}
-                    className="btn-outline"
-                    style={{ fontSize: '11px', padding: '6px 14px' }}
+                    onClick={() => { setSelectionMode(m => !m); setSelectedPhotos(new Set()); }}
+                    className={selectionMode ? 'btn-primary' : 'btn-outline'}
+                    style={{ fontSize: '10px', padding: '4px 12px' }}
                   >
-                    {selectedPhotos.size === form.photos.length ? 'Deseleziona tutte' : 'Seleziona tutte'}
+                    {selectionMode ? 'Annulla' : 'Seleziona'}
                   </button>
-
-                  {selectedPhotos.size > 0 && (
-                    <>
-                      <span style={{ fontSize: '12px', color: 'var(--text2)' }}>
-                        {selectedPhotos.size} selezionate
-                      </span>
-
-                      {/* Rimuovi dal sito (solo DB) */}
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (!confirm(`Rimuovere ${selectedPhotos.size} foto dal sito? Le immagini resteranno su Cloudinary.`)) return;
-                          const toRemove = new Set(selectedPhotos);
-                          const newPhotos = (form.photos || []).filter(p => !toRemove.has(p));
-                          const newFeatured = (form.featured_photos || []).filter(p => !toRemove.has(p));
-                          await supabase.from('events').update({ photos: newPhotos, featured_photos: newFeatured }).eq('id', form.id);
-                          setForm(f => ({ ...f, photos: newPhotos, featured_photos: newFeatured }));
-                          setSelectedPhotos(new Set());
-                          setPhotoLightbox(null);
-                        }}
-                        style={{ fontSize: '11px', padding: '6px 14px', background: 'none', border: '1px solid var(--border2)', color: 'var(--text2)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'Poppins', fontWeight: 700 }}
-                      >
-                        Rimuovi dal sito
-                      </button>
-
-                      {/* Elimina definitivamente (DB + Cloudinary) */}
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (!confirm(`Eliminare definitivamente ${selectedPhotos.size} foto? Verranno cancellate da Cloudinary e dal database. Operazione irreversibile.`)) return;
-                          for (const photoUrl of selectedPhotos) {
-                            await fetch('/api/delete-photo', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ photo_url: photoUrl, event_id: form.id }),
-                            });
-                          }
-                          const toRemove = new Set(selectedPhotos);
-                          setForm(f => ({
-                            ...f,
-                            photos: (f.photos || []).filter(p => !toRemove.has(p)),
-                            featured_photos: (f.featured_photos || []).filter(p => !toRemove.has(p)),
-                          }));
-                          setSelectedPhotos(new Set());
-                          setPhotoLightbox(null);
-                        }}
-                        style={{ fontSize: '11px', padding: '6px 14px', background: 'none', border: '1px solid rgba(232,71,26,0.4)', color: 'var(--accent)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'Poppins', fontWeight: 700 }}
-                      >
-                        Elimina definitivamente
-                      </button>
-                    </>
-                  )}
                 </div>
 
-                <p style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '14px', lineHeight: 1.5 }}>
-                  Clicca su una foto per selezionarla. Tieni premuto per aprirla. Usa ★ per il &ldquo;Best of&rdquo;.
-                </p>
+                {/* Barra azioni selezione — solo in modalità selezione */}
+                {selectionMode && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', flexWrap: 'wrap', padding: '10px 14px', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPhotos(
+                        selectedPhotos.size === form.photos.length ? new Set() : new Set(form.photos)
+                      )}
+                      className="btn-outline"
+                      style={{ fontSize: '11px', padding: '5px 12px' }}
+                    >
+                      {selectedPhotos.size === form.photos.length ? 'Deseleziona tutte' : 'Seleziona tutte'}
+                    </button>
 
-                {/* Griglia foto */}
+                    <span style={{ fontSize: '12px', color: 'var(--text2)', marginRight: '4px' }}>
+                      {selectedPhotos.size > 0 ? `${selectedPhotos.size} selezionate` : 'Nessuna selezionata'}
+                    </span>
+
+                    {selectedPhotos.size > 0 && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!confirm(`Rimuovere ${selectedPhotos.size} foto dal sito? Le immagini resteranno su Cloudinary.`)) return;
+                            const toRemove = new Set(selectedPhotos);
+                            const newPhotos = (form.photos || []).filter(p => !toRemove.has(p));
+                            const newFeatured = (form.featured_photos || []).filter(p => !toRemove.has(p));
+                            await supabase.from('events').update({ photos: newPhotos, featured_photos: newFeatured }).eq('id', form.id);
+                            setForm(f => ({ ...f, photos: newPhotos, featured_photos: newFeatured }));
+                            setSelectedPhotos(new Set());
+                            setPhotoLightbox(null);
+                          }}
+                          style={{ fontSize: '11px', padding: '5px 12px', background: 'none', border: '1px solid var(--border2)', color: 'var(--text2)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'Poppins', fontWeight: 700 }}
+                        >
+                          Rimuovi dal sito
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!confirm(`Eliminare definitivamente ${selectedPhotos.size} foto da Cloudinary e dal database? Operazione irreversibile.`)) return;
+                            for (const photoUrl of selectedPhotos) {
+                              await fetch('/api/delete-photo', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ photo_url: photoUrl, event_id: form.id }),
+                              });
+                            }
+                            const toRemove = new Set(selectedPhotos);
+                            setForm(f => ({
+                              ...f,
+                              photos: (f.photos || []).filter(p => !toRemove.has(p)),
+                              featured_photos: (f.featured_photos || []).filter(p => !toRemove.has(p)),
+                            }));
+                            setSelectedPhotos(new Set());
+                            setPhotoLightbox(null);
+                          }}
+                          style={{ fontSize: '11px', padding: '5px 12px', background: 'none', border: '1px solid rgba(232,71,26,0.4)', color: 'var(--accent)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'Poppins', fontWeight: 700 }}
+                        >
+                          Elimina definitivamente
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Griglia foto — ordinate per data upload */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '6px' }}>
-                  {form.photos.map((photoUrl, i) => {
+                  {sortedPhotos.map((photoUrl, i) => {
                     const isFeatured = (form.featured_photos || []).includes(photoUrl);
                     const isSelected = selectedPhotos.has(photoUrl);
+                    const originalIndex = form.photos.indexOf(photoUrl);
                     return (
                       <div
-                        key={i}
+                        key={photoUrl}
                         style={{
                           position: 'relative', borderRadius: '4px', overflow: 'hidden',
                           border: `2px solid ${isSelected ? '#fff' : isFeatured ? 'var(--accent)' : 'transparent'}`,
-                          transition: 'border-color 0.1s', cursor: 'pointer',
+                          transition: 'border-color 0.1s',
+                          cursor: selectionMode ? 'pointer' : 'zoom-in',
                         }}
                         onClick={() => {
-                          setSelectedPhotos(prev => {
-                            const next = new Set(prev);
-                            next.has(photoUrl) ? next.delete(photoUrl) : next.add(photoUrl);
-                            return next;
-                          });
+                          if (selectionMode) {
+                            setSelectedPhotos(prev => {
+                              const next = new Set(prev);
+                              next.has(photoUrl) ? next.delete(photoUrl) : next.add(photoUrl);
+                              return next;
+                            });
+                          } else {
+                            setPhotoLightbox(originalIndex);
+                          }
                         }}
                       >
                         <img
                           src={photoUrl}
                           alt=""
-                          onDoubleClick={() => setPhotoLightbox(i)}
                           style={{
                             width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block',
-                            opacity: isSelected ? 0.5 : isFeatured ? 1 : 0.65,
+                            opacity: isSelected ? 0.4 : isFeatured ? 1 : 0.65,
                             transition: 'opacity 0.15s',
                           }}
                         />
-                        {/* Checkbox selezione */}
-                        <div style={{
-                          position: 'absolute', top: '5px', left: '5px',
-                          width: '18px', height: '18px', borderRadius: '4px',
-                          background: isSelected ? '#fff' : 'rgba(0,0,0,0.5)',
-                          border: `2px solid ${isSelected ? '#fff' : 'rgba(255,255,255,0.4)'}`,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '11px', color: '#000', fontWeight: 900, transition: 'all 0.1s',
-                        }}>
-                          {isSelected && '✓'}
-                        </div>
-                        {/* Best of star */}
-                        <button
-                          type="button"
-                          onClick={e => { e.stopPropagation(); toggleFeatured(photoUrl); }}
-                          title={isFeatured ? 'Rimuovi dal Best of' : 'Aggiungi al Best of'}
-                          style={{
-                            position: 'absolute', top: '4px', right: '4px',
-                            background: isFeatured ? 'var(--accent)' : 'rgba(0,0,0,0.6)',
-                            border: 'none', borderRadius: '50%', width: '22px', height: '22px',
+                        {/* Checkbox — visibile solo in modalità selezione */}
+                        {selectionMode && (
+                          <div style={{
+                            position: 'absolute', top: '5px', left: '5px',
+                            width: '18px', height: '18px', borderRadius: '4px',
+                            background: isSelected ? '#fff' : 'rgba(0,0,0,0.55)',
+                            border: `2px solid ${isSelected ? '#fff' : 'rgba(255,255,255,0.35)'}`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '10px', color: '#fff', fontWeight: 900, cursor: 'pointer',
-                          }}>★</button>
+                            fontSize: '11px', color: '#000', fontWeight: 900, transition: 'all 0.1s',
+                            pointerEvents: 'none',
+                          }}>
+                            {isSelected && '✓'}
+                          </div>
+                        )}
+                        {/* Best of star — visibile solo fuori selezione */}
+                        {!selectionMode && (
+                          <button
+                            type="button"
+                            onClick={e => { e.stopPropagation(); toggleFeatured(photoUrl); }}
+                            title={isFeatured ? 'Rimuovi dal Best of' : 'Aggiungi al Best of'}
+                            style={{
+                              position: 'absolute', top: '4px', right: '4px',
+                              background: isFeatured ? 'var(--accent)' : 'rgba(0,0,0,0.6)',
+                              border: 'none', borderRadius: '50%', width: '22px', height: '22px',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: '10px', color: '#fff', fontWeight: 900, cursor: 'pointer',
+                            }}>★</button>
+                        )}
                       </div>
                     );
                   })}
                 </div>
               </div>
-            )}
+              );
+            })()}
 
             {/* PHOTO LIGHTBOX (admin) */}
             {photoLightbox !== null && form.photos && form.photos[photoLightbox] && (
