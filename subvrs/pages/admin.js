@@ -35,6 +35,7 @@ export default function Admin() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadDrag, setUploadDrag] = useState(false);
   const [uploadMsg, setUploadMsg] = useState(null);
+  const [cleaning, setCleaning] = useState(false);
 
   useEffect(() => {
     if (auth) loadEvents();
@@ -85,26 +86,39 @@ export default function Admin() {
     setUploading(true);
     setUploadProgress(0);
     setUploadMsg(null);
-    const uploaded = [];
-    for (let i = 0; i < uploadFiles.length; i++) {
+
+    const BATCH_SIZE = 5;
+    let totalUploaded = 0;
+    let allPhotos = [...(form.photos || [])];
+
+    const uploadOne = async (file) => {
       const fd = new FormData();
-      fd.append('file', uploadFiles[i]);
+      fd.append('file', file);
       fd.append('upload_preset', UPLOAD_PRESET);
       fd.append('folder', `subvrs/${form.id}`);
       try {
         const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
         const data = await res.json();
-        if (data.secure_url) uploaded.push(data.secure_url);
-      } catch (err) { console.error(err); }
-      setUploadProgress(Math.round(((i + 1) / uploadFiles.length) * 100));
+        return data.secure_url || null;
+      } catch { return null; }
+    };
+
+    for (let i = 0; i < uploadFiles.length; i += BATCH_SIZE) {
+      const batch = uploadFiles.slice(i, i + BATCH_SIZE);
+      const urls = await Promise.all(batch.map(uploadOne));
+      const valid = urls.filter(Boolean);
+      allPhotos = [...allPhotos, ...valid];
+      totalUploaded += valid.length;
+      // Salva su DB ogni batch così non si perde nulla
+      await supabase.from('events').update({ photos: allPhotos }).eq('id', form.id);
+      setForm(f => ({ ...f, photos: allPhotos }));
+      setUploadProgress(Math.round(((i + batch.length) / uploadFiles.length) * 100));
     }
-    const newPhotos = [...(form.photos || []), ...uploaded];
-    await supabase.from('events').update({ photos: newPhotos }).eq('id', form.id);
-    setForm(f => ({ ...f, photos: newPhotos }));
+
     setUploadFiles([]);
     setUploadPreviews([]);
     setUploading(false);
-    setUploadMsg({ type: 'success', text: `${uploaded.length} foto caricate!` });
+    setUploadMsg({ type: 'success', text: `${totalUploaded} foto caricate!` });
     setTimeout(() => setUploadMsg(null), 3000);
   };
 
@@ -220,7 +234,29 @@ export default function Admin() {
             </h1>
           </div>
           {view === 'list' ? (
-            <button onClick={handleNew} className="btn-primary">+ Nuovo evento</button>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                onClick={async () => {
+                  if (!confirm('Avvia pulizia DB? Verranno rimossi tutti i riferimenti a foto non più presenti su Cloudinary.')) return;
+                  setCleaning(true);
+                  const res = await fetch('/api/cleanup-photos', { method: 'POST' });
+                  const data = await res.json();
+                  setCleaning(false);
+                  await loadEvents();
+                  if (data.success) {
+                    setMsg({ type: 'success', text: `Pulizia completata: ${data.orphaned_removed} foto orfane rimosse da ${data.events_cleaned} eventi.` });
+                  } else {
+                    setMsg({ type: 'error', text: 'Errore durante la pulizia.' });
+                  }
+                }}
+                disabled={cleaning}
+                className="btn-outline"
+                style={{ fontSize: '12px', padding: '10px 16px', opacity: cleaning ? 0.6 : 1 }}
+              >
+                {cleaning ? 'Pulizia...' : '🧹 Pulisci DB'}
+              </button>
+              <button onClick={handleNew} className="btn-primary">+ Nuovo evento</button>
+            </div>
           ) : (
             <button onClick={() => setView('list')} className="btn-outline">← Torna alla lista</button>
           )}
