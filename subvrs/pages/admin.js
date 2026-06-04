@@ -29,6 +29,7 @@ export default function Admin() {
   const [msg, setMsg] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [photoLightbox, setPhotoLightbox] = useState(null);
+  const [selectedPhotos, setSelectedPhotos] = useState(new Set());
   const [uploadFiles, setUploadFiles] = useState([]);
   const [uploadPreviews, setUploadPreviews] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -177,6 +178,7 @@ export default function Admin() {
       photos_public: event.photos_public !== false, // default true se colonna non esiste
     });
     setPhotoLightbox(null);
+    setSelectedPhotos(new Set());
     setUploadFiles([]);
     setUploadPreviews([]);
     setUploadMsg(null);
@@ -195,6 +197,7 @@ export default function Admin() {
   const handleNew = () => {
     setForm({ ...EMPTY_EVENT, lineup: [{ ...EMPTY_ARTIST }] });
     setPhotoLightbox(null);
+    setSelectedPhotos(new Set());
     setUploadFiles([]);
     setUploadPreviews([]);
     setUploadMsg(null);
@@ -533,51 +536,138 @@ export default function Admin() {
               </Field>
             )}
 
-            {/* FOTO EVENTO — viewer + Best of */}
+            {/* FOTO EVENTO — selezione, viewer, Best of */}
             {form.photos && form.photos.length > 0 && (
               <div>
-                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {/* Header */}
+                <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text2)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                   Foto evento
                   <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
                   <span style={{ fontSize: '11px', color: 'var(--text2)', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'none' }}>
                     {form.photos.length} foto · {(form.featured_photos || []).length} in evidenza
                   </span>
+                </div>
+
+                {/* Barra selezione */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
                   <button
                     type="button"
-                    onClick={async () => {
-                      if (!confirm(`Eliminare tutte le ${form.photos.length} foto di questo evento? L'operazione è irreversibile.`)) return;
-                      for (const photoUrl of form.photos) {
-                        await fetch('/api/delete-photo', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ photo_url: photoUrl, event_id: form.id }),
-                        });
+                    onClick={() => {
+                      if (selectedPhotos.size === form.photos.length) {
+                        setSelectedPhotos(new Set());
+                      } else {
+                        setSelectedPhotos(new Set(form.photos));
                       }
-                      setForm(f => ({ ...f, photos: [], featured_photos: [] }));
-                      setPhotoLightbox(null);
                     }}
-                    style={{ background: 'none', border: '1px solid rgba(232,71,26,0.35)', color: 'var(--accent)', padding: '4px 12px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    className="btn-outline"
+                    style={{ fontSize: '11px', padding: '6px 14px' }}
                   >
-                    Elimina tutte
+                    {selectedPhotos.size === form.photos.length ? 'Deseleziona tutte' : 'Seleziona tutte'}
                   </button>
+
+                  {selectedPhotos.size > 0 && (
+                    <>
+                      <span style={{ fontSize: '12px', color: 'var(--text2)' }}>
+                        {selectedPhotos.size} selezionate
+                      </span>
+
+                      {/* Rimuovi dal sito (solo DB) */}
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!confirm(`Rimuovere ${selectedPhotos.size} foto dal sito? Le immagini resteranno su Cloudinary.`)) return;
+                          const toRemove = new Set(selectedPhotos);
+                          const newPhotos = (form.photos || []).filter(p => !toRemove.has(p));
+                          const newFeatured = (form.featured_photos || []).filter(p => !toRemove.has(p));
+                          await supabase.from('events').update({ photos: newPhotos, featured_photos: newFeatured }).eq('id', form.id);
+                          setForm(f => ({ ...f, photos: newPhotos, featured_photos: newFeatured }));
+                          setSelectedPhotos(new Set());
+                          setPhotoLightbox(null);
+                        }}
+                        style={{ fontSize: '11px', padding: '6px 14px', background: 'none', border: '1px solid var(--border2)', color: 'var(--text2)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'Poppins', fontWeight: 700 }}
+                      >
+                        Rimuovi dal sito
+                      </button>
+
+                      {/* Elimina definitivamente (DB + Cloudinary) */}
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!confirm(`Eliminare definitivamente ${selectedPhotos.size} foto? Verranno cancellate da Cloudinary e dal database. Operazione irreversibile.`)) return;
+                          for (const photoUrl of selectedPhotos) {
+                            await fetch('/api/delete-photo', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ photo_url: photoUrl, event_id: form.id }),
+                            });
+                          }
+                          const toRemove = new Set(selectedPhotos);
+                          setForm(f => ({
+                            ...f,
+                            photos: (f.photos || []).filter(p => !toRemove.has(p)),
+                            featured_photos: (f.featured_photos || []).filter(p => !toRemove.has(p)),
+                          }));
+                          setSelectedPhotos(new Set());
+                          setPhotoLightbox(null);
+                        }}
+                        style={{ fontSize: '11px', padding: '6px 14px', background: 'none', border: '1px solid rgba(232,71,26,0.4)', color: 'var(--accent)', borderRadius: '4px', cursor: 'pointer', fontFamily: 'Poppins', fontWeight: 700 }}
+                      >
+                        Elimina definitivamente
+                      </button>
+                    </>
+                  )}
                 </div>
-                <p style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '16px', lineHeight: 1.5 }}>
-                  Clicca su una foto per visualizzarla o scaricarla. Usa ★ per aggiungerla/rimuoverla dal &ldquo;Best of&rdquo;.
+
+                <p style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '14px', lineHeight: 1.5 }}>
+                  Clicca su una foto per selezionarla. Tieni premuto per aprirla. Usa ★ per il &ldquo;Best of&rdquo;.
                 </p>
+
+                {/* Griglia foto */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '6px' }}>
                   {form.photos.map((photoUrl, i) => {
                     const isFeatured = (form.featured_photos || []).includes(photoUrl);
+                    const isSelected = selectedPhotos.has(photoUrl);
                     return (
-                      <div key={i} style={{ position: 'relative', borderRadius: '4px', overflow: 'hidden', border: `2px solid ${isFeatured ? 'var(--accent)' : 'transparent'}`, transition: 'border-color 0.15s' }}>
+                      <div
+                        key={i}
+                        style={{
+                          position: 'relative', borderRadius: '4px', overflow: 'hidden',
+                          border: `2px solid ${isSelected ? '#fff' : isFeatured ? 'var(--accent)' : 'transparent'}`,
+                          transition: 'border-color 0.1s', cursor: 'pointer',
+                        }}
+                        onClick={() => {
+                          setSelectedPhotos(prev => {
+                            const next = new Set(prev);
+                            next.has(photoUrl) ? next.delete(photoUrl) : next.add(photoUrl);
+                            return next;
+                          });
+                        }}
+                      >
                         <img
                           src={photoUrl}
                           alt=""
-                          onClick={() => setPhotoLightbox(i)}
-                          style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block', cursor: 'zoom-in', opacity: isFeatured ? 1 : 0.6, transition: 'opacity 0.15s' }}
+                          onDoubleClick={() => setPhotoLightbox(i)}
+                          style={{
+                            width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block',
+                            opacity: isSelected ? 0.5 : isFeatured ? 1 : 0.65,
+                            transition: 'opacity 0.15s',
+                          }}
                         />
+                        {/* Checkbox selezione */}
+                        <div style={{
+                          position: 'absolute', top: '5px', left: '5px',
+                          width: '18px', height: '18px', borderRadius: '4px',
+                          background: isSelected ? '#fff' : 'rgba(0,0,0,0.5)',
+                          border: `2px solid ${isSelected ? '#fff' : 'rgba(255,255,255,0.4)'}`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '11px', color: '#000', fontWeight: 900, transition: 'all 0.1s',
+                        }}>
+                          {isSelected && '✓'}
+                        </div>
+                        {/* Best of star */}
                         <button
                           type="button"
-                          onClick={() => toggleFeatured(photoUrl)}
+                          onClick={e => { e.stopPropagation(); toggleFeatured(photoUrl); }}
                           title={isFeatured ? 'Rimuovi dal Best of' : 'Aggiungi al Best of'}
                           style={{
                             position: 'absolute', top: '4px', right: '4px',
