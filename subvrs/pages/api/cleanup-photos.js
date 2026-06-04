@@ -4,7 +4,7 @@ const CLOUD_NAME = 'dvjxx6syx';
 
 async function fetchCloudinaryPage(apiKey, apiSecret, prefix, nextCursor) {
   const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
-  const url = new URL(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/resources/image`);
+  const url = new URL(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/resources/image/upload`);
   url.searchParams.set('prefix', prefix);
   url.searchParams.set('max_results', '500');
   if (nextCursor) url.searchParams.set('next_cursor', nextCursor);
