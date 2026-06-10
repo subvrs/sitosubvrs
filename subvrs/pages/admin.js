@@ -13,7 +13,7 @@ const getCloudinaryTs = (url) => {
 const sortByUpload = (photos) =>
   [...(photos || [])].sort((a, b) => getCloudinaryTs(b) - getCloudinaryTs(a));
 const UPLOAD_PRESET = 'subvrs_events';
-const GENRE_OPTIONS = ['House', 'Disco', 'Disco House', 'Techno House', 'Afro House', 'Deep House', 'Tech House', 'Funk'];
+const GENRE_OPTIONS = ['House', 'Disco', 'Disco House', 'Techno House', 'Afro House', 'Deep House', 'Tech House', 'Funk', 'Electronic'];
 const EMPTY_ARTIST = { name: '', role: 'DJ Set', time: '', bio: '', instagram: '', photo: '' };
 
 const EMPTY_EVENT = {
