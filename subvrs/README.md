@@ -81,7 +81,7 @@ Aggiungi un oggetto all'array in `data/events.json` con questa struttura:
 ## Cambiare password upload/admin
 
 - Upload fotografo: `pages/upload.js` → `UPLOAD_PASSWORD`
-- Admin panel: `pages/admin.js` → `ADMIN_PASSWORD`
+- Admin panel: env var `ADMIN_PASSWORD` su Vercel (Settings → Environment Variables)
 
 ---
 

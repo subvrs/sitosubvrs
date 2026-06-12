@@ -2,7 +2,6 @@ import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
-const ADMIN_PASSWORD = 'subvrsadmin2026';
 const CLOUD_NAME = 'dvjxx6syx';
 
 // Estrae il timestamp di upload dall'URL Cloudinary (es. /upload/v1686000000/...)
@@ -55,10 +54,20 @@ export default function Admin() {
     setEvents(data || []);
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (pw === ADMIN_PASSWORD) setAuth(true);
-    else setPwError(true);
+    setPwError(false);
+    try {
+      const res = await fetch('/api/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw }),
+      });
+      if (res.ok) setAuth(true);
+      else setPwError(true);
+    } catch {
+      setPwError(true);
+    }
   };
 
   const updateField = (key, val) => setForm(f => ({ ...f, [key]: val }));
@@ -131,19 +140,21 @@ export default function Admin() {
     setTimeout(() => setUploadMsg(null), 3000);
   };
 
-  const handleDeletePhoto = async (photoUrl) => {
-    if (!confirm('Eliminare questa foto?')) return;
-    await fetch('/api/delete-photo', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ photo_url: photoUrl, event_id: form.id }),
-    });
+  // Elimina le foto dal DB (array photos/featured) e dal file storage Cloudinary
+  const removePhotos = async (urls) => {
+    await Promise.all(urls.map(url =>
+      fetch('/api/delete-photo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photo_url: url, event_id: form.id }),
+      })
+    ));
+    const toRemove = new Set(urls);
     setForm(f => ({
       ...f,
-      photos: (f.photos || []).filter(p => p !== photoUrl),
-      featured_photos: (f.featured_photos || []).filter(p => p !== photoUrl),
+      photos: (f.photos || []).filter(p => !toRemove.has(p)),
+      featured_photos: (f.featured_photos || []).filter(p => !toRemove.has(p)),
     }));
-    if (photoLightbox !== null) setPhotoLightbox(null);
   };
 
   const generateId = (name, date) => {
@@ -545,12 +556,8 @@ export default function Admin() {
                       <button
                         type="button"
                         onClick={async () => {
-                          if (!confirm(`Rimuovere ${selectedPhotos.size} foto dal sito? Le immagini resteranno su Cloudinary.`)) return;
-                          const toRemove = new Set(selectedPhotos);
-                          const newPhotos = (form.photos || []).filter(p => !toRemove.has(p));
-                          const newFeatured = (form.featured_photos || []).filter(p => !toRemove.has(p));
-                          await supabase.from('events').update({ photos: newPhotos, featured_photos: newFeatured }).eq('id', form.id);
-                          setForm(f => ({ ...f, photos: newPhotos, featured_photos: newFeatured }));
+                          if (!confirm(`Eliminare ${selectedPhotos.size} foto? Verranno rimosse dal sito e dal database (Cloudinary incluso). Operazione non reversibile.`)) return;
+                          await removePhotos([...selectedPhotos]);
                           setSelectedPhotos(new Set());
                           setPhotoLightbox(null);
                         }}
@@ -689,11 +696,8 @@ export default function Admin() {
                     onClick={async e => {
                       e.stopPropagation();
                       const photoUrl = form.photos[photoLightbox];
-                      if (!confirm('Rimuovere questa foto dal sito? Resterà su Cloudinary.')) return;
-                      const newPhotos = (form.photos || []).filter(p => p !== photoUrl);
-                      const newFeatured = (form.featured_photos || []).filter(p => p !== photoUrl);
-                      await supabase.from('events').update({ photos: newPhotos, featured_photos: newFeatured }).eq('id', form.id);
-                      setForm(f => ({ ...f, photos: newPhotos, featured_photos: newFeatured }));
+                      if (!confirm('Eliminare questa foto? Verrà rimossa dal sito e dal database (Cloudinary incluso). Operazione non reversibile.')) return;
+                      await removePhotos([photoUrl]);
                       setPhotoLightbox(null);
                     }}
                     style={{ background: 'none', border: '1px solid rgba(232,71,26,0.5)', color: 'var(--accent)', padding: '9px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>

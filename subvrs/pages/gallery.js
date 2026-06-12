@@ -22,9 +22,13 @@ const getFullUrl = (url) => {
 export async function getServerSideProps() {
   const { data: events } = await supabase
     .from('events')
-    .select('id, name, date, photos, featured_photos')
+    .select('id, name, date, photos, featured_photos, photos_public')
     .order('date', { ascending: false });
-  return { props: { events: events || [] } };
+  // Le foto marcate come private non vengono inviate al client
+  const sanitized = (events || []).map(e =>
+    e.photos_public === false ? { ...e, photos: [], featured_photos: [] } : e
+  );
+  return { props: { events: sanitized } };
 }
 
 export default function Media({ events }) {
