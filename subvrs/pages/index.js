@@ -149,7 +149,7 @@ export default function Home({ nextEvent }) {
         </div>
         <div style={{ flex: '1 1 400px' }}>
           <p style={{ fontSize: '16px', lineHeight: 1.8, color: 'var(--text2)', marginBottom: '16px' }}>
-            Siamo un gruppo di amici che vengono da mondi diversi e questo, alla fine, è il motivo per cui funziona.
+            SUBVRS è un collettivo torinese che organizza serate di musica elettronica. Scegliamo i posti, gli artisti e la musica con la stessa cura che vorremmo trovare noi quando usciamo.
           </p>
           <p style={{ fontSize: '16px', lineHeight: 1.8, color: 'var(--text2)', marginBottom: '16px' }}>
             Backgrounds diversi significano gusti diversi, occhi diversi, modi diversi di stare in un posto. Significa che quando organizziamo una serata, sappiamo come fare sentire a casa chiunque entri.
