@@ -7,8 +7,15 @@ export async function getServerSideProps() {
   const { data: events } = await supabase
     .from('events')
     .select('*')
-    .order('date', { ascending: false });
-  const nextEvent = (events || []).find(e => e.status === 'upcoming') || (events || [])[0] || null;
+    .order('date', { ascending: true });
+  const list = events || [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const nextEvent =
+    list.find(e => e.status === 'upcoming' && new Date(e.date) >= today) ||
+    list.find(e => e.status === 'upcoming') ||
+    list[list.length - 1] ||
+    null;
   return { props: { nextEvent } };
 }
 
